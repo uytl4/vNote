@@ -1,0 +1,127 @@
+@media (max-width: 900px) {
+  .stat-row {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .widget-grid,
+  .tool-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .topbar-brand .subtitle {
+    display: none;
+  }
+
+  .topbar-search {
+    display: none;
+  }
+
+  .topbar-brand span:not(.logo) {
+    display: none;
+  }
+
+  .topbar {
+    justify-content: space-between;
+  }
+
+  #app {
+    grid-template-rows: var(--topbar-h) 1fr var(--mobile-nav-h);
+  }
+
+  .layout {
+    position: relative;
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    position: fixed;
+    top: var(--topbar-h);
+    bottom: var(--mobile-nav-h);
+    left: 0;
+    width: min(80vw, 300px);
+    z-index: 90;
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
+    box-shadow: var(--shadow);
+  }
+
+  #app.sidebar-open .sidebar {
+    transform: translateX(0);
+  }
+
+  .sidebar-backdrop {
+    display: none;
+    position: fixed;
+    inset: var(--topbar-h) 0 var(--mobile-nav-h) 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 80;
+  }
+
+  #app.sidebar-open .sidebar-backdrop {
+    display: block;
+  }
+
+  .statusbar {
+    display: none;
+  }
+
+  .mobile-nav {
+    display: flex;
+    align-items: stretch;
+    justify-content: space-around;
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--border);
+  }
+
+  .mobile-nav button {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 10px;
+    cursor: pointer;
+  }
+
+  .mobile-nav button.active {
+    color: var(--accent);
+  }
+
+  .mobile-nav .mn-icon {
+    font-size: 17px;
+  }
+
+  .view {
+    padding: 16px 14px 24px;
+  }
+
+  .stat-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .widget-grid,
+  .tool-grid {
+    grid-template-columns: 1fr;
+  }
+
+  #app.focus-mode .mobile-nav {
+    display: none;
+  }
+
+  #app.focus-mode #app,
+  #app.focus-mode {
+    grid-template-rows: 1fr;
+  }
+}
+
+@media (min-width: 769px) {
+  .topbar-brand .subtitle {
+    display: inline;
+  }
+}

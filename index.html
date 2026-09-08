@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<script>
+  (function () {
+    try {
+      var t = localStorage.getItem('vnote-theme') || 'dark';
+      document.documentElement.setAttribute('data-theme', t);
+    } catch (e) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
+  })();
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>vNote Ultra Web</title>
+<link rel="stylesheet" href="css/app.css">
+<link rel="stylesheet" href="css/components.css">
+<link rel="stylesheet" href="css/dark.css">
+<link rel="stylesheet" href="css/responsive.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- ============ TOPBAR ============ -->
+  <header class="topbar">
+    <button class="icon-btn" id="btn-sidebar-toggle" title="Toggle sidebar">☰</button>
+    <div class="topbar-brand">
+      <span class="logo">🗒️</span>
+      <span>vNote Ultra</span>
+      <span class="subtitle">Personal Knowledge, Work &amp; File Operations Center</span>
+    </div>
+
+    <div class="topbar-search" id="btn-open-search">
+      <span>🔍</span>
+      <span>Search notes, tasks, commands, snippets…</span>
+      <kbd>Ctrl K</kbd>
+    </div>
+
+    <div class="topbar-actions">
+      <button class="icon-btn" id="btn-quick-capture" title="Quick Capture (Ctrl+Shift+N)">＋</button>
+      <button class="icon-btn" id="btn-command-palette" title="Command Palette (Ctrl+Shift+P)">⌘</button>
+      <button class="icon-btn" id="btn-focus-mode" title="Focus Mode (Ctrl+Shift+F)">▭</button>
+      <button class="icon-btn" id="btn-theme-toggle" title="Toggle theme">🌙</button>
+      <button class="icon-btn" title="Settings" data-view-link="settings">⚙️</button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
+    <!-- ============ SIDEBAR ============ -->
+    <aside class="sidebar" id="sidebar">
+      <nav class="nav" id="nav">
+        <a class="nav-item active" data-view="dashboard"><span class="nav-icon">🏠</span><span class="nav-label">Dashboard</span></a>
+
+        <div class="nav-section">
+          <a class="nav-item" data-view="notes"><span class="nav-icon">📝</span><span class="nav-label">Notes</span></a>
+          <a class="nav-item" data-view="pinned"><span class="nav-icon">📌</span><span class="nav-label">Pinned</span></a>
+          <a class="nav-item" data-view="favorites"><span class="nav-icon">⭐</span><span class="nav-label">Favorites</span></a>
+          <a class="nav-item" data-view="daily-notes"><span class="nav-icon">📅</span><span class="nav-label">Daily Notes</span></a>
+        </div>
+
+        <details class="nav-group" open>
+          <summary><span class="nav-icon">💼</span><span class="label">WORK</span><span class="chevron">▸</span></summary>
+          <a class="nav-item nav-item--sub" data-view="work-ocs">OCS</a>
+          <a class="nav-item nav-item--sub" data-view="work-kubernetes">Kubernetes</a>
+          <a class="nav-item nav-item--sub" data-view="work-elasticsearch">Elasticsearch</a>
+          <a class="nav-item nav-item--sub" data-view="work-linux">Linux</a>
+          <a class="nav-item nav-item--sub" data-view="work-telecom">Telecom</a>
+          <a class="nav-item nav-item--sub" data-view="work-cdr">CDR</a>
+          <a class="nav-item nav-item--sub" data-view="work-other">Other</a>
+        </details>
+
+        <div class="nav-divider"></div>
+
+        <a class="nav-item" data-view="study"><span class="nav-icon">📚</span><span class="nav-label">Study</span></a>
+        <a class="nav-item" data-view="tasks"><span class="nav-icon">✅</span><span class="nav-label">Tasks</span></a>
+        <a class="nav-item" data-view="projects"><span class="nav-icon">📁</span><span class="nav-label">Projects</span></a>
+
+        <div class="nav-divider"></div>
+
+        <a class="nav-item" data-view="command-center"><span class="nav-icon">🧰</span><span class="nav-label">Command Center</span></a>
+        <a class="nav-item" data-view="snippets"><span class="nav-icon">🧩</span><span class="nav-label">Snippets</span></a>
+        <a class="nav-item" data-view="troubleshooting"><span class="nav-icon">🐛</span><span class="nav-label">Troubleshooting</span></a>
+        <a class="nav-item" data-view="flashcards"><span class="nav-icon">🎴</span><span class="nav-label">Flashcards</span></a>
+        <a class="nav-item" data-view="knowledge-graph"><span class="nav-icon">🧠</span><span class="nav-label">Knowledge Graph</span></a>
+
+        <details class="nav-group" open>
+          <summary><span class="nav-icon">📂</span><span class="label">FILE TOOLS</span><span class="chevron">▸</span></summary>
+          <a class="nav-item nav-item--sub" data-view="file-compare">🔍 File Compare</a>
+          <a class="nav-item nav-item--sub" data-view="file-splitter">✂️ File Splitter</a>
+          <a class="nav-item nav-item--sub" data-view="file-analyzer">📊 File Analyzer</a>
+          <a class="nav-item nav-item--sub" data-view="file-converter">🔄 File Converter</a>
+          <a class="nav-item nav-item--sub" data-view="file-viewer">👁️ File Viewer</a>
+          <a class="nav-item nav-item--sub" data-view="data-cleaner">🧹 Data Cleaner</a>
+        </details>
+
+        <div class="nav-divider"></div>
+
+        <a class="nav-item" data-view="analytics"><span class="nav-icon">📈</span><span class="nav-label">Analytics</span></a>
+        <a class="nav-item" data-view="trash"><span class="nav-icon">🗑️</span><span class="nav-label">Trash</span></a>
+        <a class="nav-item" data-view="settings"><span class="nav-icon">⚙️</span><span class="nav-label">Settings</span></a>
+      </nav>
+    </aside>
+
+    <!-- ============ WORKSPACE ============ -->
+    <main class="workspace" id="workspace">
+
+      <!-- Dashboard -->
+      <section class="view active" data-view-id="dashboard">
+        <div class="view-header">
+          <div>
+            <h1>Dashboard</h1>
+            <p>Today's Work — Thứ Ba, 08/09/2026</p>
+          </div>
+          <button class="btn btn-primary" data-view-link="notes">＋ New Note</button>
+        </div>
+
+        <div class="stat-row">
+          <div class="stat-card"><div class="stat-value">12</div><div class="stat-label">Tasks</div></div>
+          <div class="stat-card"><div class="stat-value">8</div><div class="stat-label">Completed</div></div>
+          <div class="stat-card"><div class="stat-value">5</div><div class="stat-label">Notes</div></div>
+          <div class="stat-card"><div class="stat-value">2</div><div class="stat-label">Troubleshooting</div></div>
+          <div class="stat-card"><div class="stat-value">15</div><div class="stat-label">Files processed</div></div>
+        </div>
+
+        <div class="widget-grid">
+          <div class="card">
+            <div class="card-title">Today's Tasks <span class="link" data-view-link="tasks">View all</span></div>
+            <ul class="list-plain">
+              <li class="list-row"><span class="dot"></span><span class="title">Kiểm tra alarm CCR/CCA trên PCRF</span><span class="badge badge-danger">High</span></li>
+              <li class="list-row"><span class="dot"></span><span class="title">Viết note tổng hợp lệnh kubectl</span><span class="badge badge-warning">Medium</span></li>
+              <li class="list-row"><span class="dot"></span><span class="title">Đối chiếu CDR ngày 07/09</span><span class="badge">Low</span></li>
+            </ul>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Recent Notes <span class="link" data-view-link="notes">View all</span></div>
+            <ul class="list-plain">
+              <li class="list-row"><span class="dot"></span><span class="title">OCS Architecture Overview</span><span class="meta">2h ago</span></li>
+              <li class="list-row"><span class="dot"></span><span class="title">Elasticsearch slow query checklist</span><span class="meta">5h ago</span></li>
+              <li class="list-row"><span class="dot"></span><span class="title">Kubernetes useful commands</span><span class="meta">Yesterday</span></li>
+            </ul>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Recent Files <span class="link" data-view-link="file-viewer">View all</span></div>
+            <ul class="list-plain">
+              <li class="list-row"><span class="dot"></span><span class="title">cdr_20260908.dat</span><span class="meta">128 MB</span></li>
+              <li class="list-row"><span class="dot"></span><span class="title">es_slowlog.log</span><span class="meta">42 MB</span></li>
+              <li class="list-row"><span class="dot"></span><span class="title">file_A.dat vs file_B.dat</span><span class="meta">Compared</span></li>
+            </ul>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Pinned Notes <span class="link" data-view-link="pinned">View all</span></div>
+            <ul class="list-plain">
+              <li class="list-row"><span class="dot"></span><span class="title">Diameter CCR / CCA cheat sheet</span></li>
+              <li class="list-row"><span class="dot"></span><span class="title">Linux AWK commands</span></li>
+            </ul>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Favorites <span class="link" data-view-link="favorites">View all</span></div>
+            <ul class="list-plain">
+              <li class="list-row"><span class="dot"></span><span class="title">REQUEST_TIMEOUT troubleshooting</span></li>
+              <li class="list-row"><span class="dot"></span><span class="title">Kafka consumer lag</span></li>
+            </ul>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Overdue Tasks <span class="link" data-view-link="tasks">View all</span></div>
+            <ul class="list-plain">
+              <li class="list-row"><span class="dot"></span><span class="title">Update runbook cho GGSN</span><span class="badge badge-danger">2 days</span></li>
+            </ul>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Recently Used Commands <span class="link" data-view-link="command-center">View all</span></div>
+            <ul class="list-plain">
+              <li class="list-row"><span class="dot"></span><span class="title">kubectl get pods -A</span><span class="meta">Kubernetes</span></li>
+              <li class="list-row"><span class="dot"></span><span class="title">journalctl -u ocs -f</span><span class="meta">Linux</span></li>
+            </ul>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Recently Compared Files <span class="link" data-view-link="file-compare">View all</span></div>
+            <ul class="list-plain">
+              <li class="list-row"><span class="dot"></span><span class="title">file_A.dat ↔ file_B.dat</span><span class="meta">Modified: 573</span></li>
+            </ul>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Study Progress <span class="link" data-view-link="flashcards">View all</span></div>
+            <div class="progress-bar"><div class="fill" style="width:64%"></div></div>
+            <p style="color:var(--text-secondary); margin:8px 0 0;">32 / 50 cards reviewed today</p>
+          </div>
+
+          <div class="card quick-capture-widget">
+            <div class="card-title">Quick Capture <kbd>Ctrl Shift N</kbd></div>
+            <textarea placeholder="Nhập nhanh note, task, command…"></textarea>
+            <div class="row">
+              <select>
+                <option>Note</option>
+                <option>Task</option>
+                <option>Command</option>
+                <option>Issue</option>
+                <option>Idea</option>
+              </select>
+              <button class="btn btn-primary btn-sm" data-toast="Đã lưu (demo — chưa nối IndexedDB)">Save</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Notes -->
+      <section class="view" data-view-id="notes">
+        <div class="view-header">
+          <div><h1>Notes</h1><p>Tất cả ghi chú công việc &amp; học tập</p></div>
+          <button class="btn btn-primary" data-toast="Tạo note mới (demo)">＋ New Note</button>
+        </div>
+        <div class="toolbar">
+          <span class="chip active">All</span>
+          <span class="chip">Draft</span>
+          <span class="chip">Todo</span>
+          <span class="chip">In Progress</span>
+          <span class="chip">Completed</span>
+          <span class="chip">Archived</span>
+          <span class="spacer"></span>
+          <button class="btn btn-sm">Sort ▾</button>
+        </div>
+        <table class="table">
+          <thead><tr><th>Title</th><th>Category</th><th>Tags</th><th>Priority</th><th>Status</th><th>Updated</th></tr></thead>
+          <tbody>
+            <tr><td>OCS Architecture Overview</td><td>OCS</td><td>ocs, diameter</td><td><span class="badge badge-warning">Medium</span></td><td><span class="badge badge-success">Completed</span></td><td>2h ago</td></tr>
+            <tr><td>Elasticsearch slow query checklist</td><td>Elasticsearch</td><td>elasticsearch</td><td><span class="badge badge-danger">High</span></td><td><span class="badge badge-accent">In Progress</span></td><td>5h ago</td></tr>
+            <tr><td>Kubernetes useful commands</td><td>Kubernetes</td><td>k8s, cheatsheet</td><td><span class="badge">Low</span></td><td><span class="badge badge-success">Completed</span></td><td>Yesterday</td></tr>
+            <tr><td>Diameter CCR / CCA cheat sheet</td><td>OCS</td><td>diameter</td><td><span class="badge badge-warning">Medium</span></td><td><span class="badge badge-success">Completed</span></td><td>2 days ago</td></tr>
+            <tr><td>CDR Troubleshooting — REQUEST_TIMEOUT</td><td>CDR</td><td>cdr, timeout</td><td><span class="badge badge-danger">Critical</span></td><td><span class="badge">Draft</span></td><td>3 days ago</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- Pinned / Favorites / Daily Notes / Study / Projects / Analytics / Trash / WORK subcats / Knowledge Graph : generic placeholders, rendered by JS -->
+
+      <!-- Tasks -->
+      <section class="view" data-view-id="tasks">
+        <div class="view-header">
+          <div><h1>Tasks</h1><p>Quản lý công việc theo trạng thái &amp; hạn chót</p></div>
+          <button class="btn btn-primary" data-toast="Tạo task mới (demo)">＋ New Task</button>
+        </div>
+        <div class="toolbar">
+          <span class="chip active">Today</span>
+          <span class="chip">Upcoming</span>
+          <span class="chip">Overdue</span>
+          <span class="chip">Completed</span>
+        </div>
+        <table class="table">
+          <thead><tr><th></th><th>Title</th><th>Project</th><th>Priority</th><th>Due</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td><input type="checkbox"></td><td>Kiểm tra alarm CCR/CCA trên PCRF</td><td>OCS Monitoring</td><td><span class="badge badge-danger">High</span></td><td>Today</td><td><span class="badge badge-accent">In Progress</span></td></tr>
+            <tr><td><input type="checkbox"></td><td>Viết note tổng hợp lệnh kubectl</td><td>Documentation</td><td><span class="badge badge-warning">Medium</span></td><td>Today</td><td><span class="badge">Todo</span></td></tr>
+            <tr><td><input type="checkbox" checked></td><td>Đối chiếu CDR ngày 07/09</td><td>Telecom Ops</td><td><span class="badge">Low</span></td><td>Yesterday</td><td><span class="badge badge-success">Done</span></td></tr>
+            <tr><td><input type="checkbox"></td><td>Update runbook cho GGSN</td><td>Documentation</td><td><span class="badge badge-danger">High</span></td><td>2 days ago</td><td><span class="badge badge-danger">Overdue</span></td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- Command Center -->
+      <section class="view" data-view-id="command-center">
+        <div class="view-header">
+          <div><h1>Command Center</h1><p>Thư viện lệnh Linux / Kubernetes / Elasticsearch / OCS…</p></div>
+          <button class="btn btn-primary" data-toast="Thêm command mới (demo)">＋ New Command</button>
+        </div>
+        <div class="toolbar">
+          <span class="chip active">All</span>
+          <span class="chip">Linux</span>
+          <span class="chip">Kubernetes</span>
+          <span class="chip">Elasticsearch</span>
+          <span class="chip">Kafka</span>
+          <span class="chip">MySQL</span>
+          <span class="chip">Git</span>
+          <span class="chip">Docker</span>
+          <span class="chip">OCS</span>
+          <span class="chip">Telecom</span>
+        </div>
+        <table class="table">
+          <thead><tr><th>Name</th><th>Command</th><th>Category</th><th>Danger</th><th></th></tr></thead>
+          <tbody>
+            <tr><td>List all pods</td><td><code>kubectl get pods -A</code></td><td>Kubernetes</td><td><span class="badge badge-success">Safe</span></td><td><button class="btn btn-sm" data-toast="Đã copy: kubectl get pods -A">Copy</button></td></tr>
+            <tr><td>Tail service log</td><td><code>journalctl -u ocs -f</code></td><td>Linux</td><td><span class="badge badge-success">Safe</span></td><td><button class="btn btn-sm" data-toast="Đã copy lệnh">Copy</button></td></tr>
+            <tr><td>Delete pod</td><td><code>kubectl delete pod &lt;name&gt;</code></td><td>Kubernetes</td><td><span class="badge badge-danger">Dangerous</span></td><td><button class="btn btn-sm" data-toast="Đã copy lệnh">Copy</button></td></tr>
+            <tr><td>Restart service</td><td><code>systemctl restart ocs</code></td><td>Linux</td><td><span class="badge badge-danger">Dangerous</span></td><td><button class="btn btn-sm" data-toast="Đã copy lệnh">Copy</button></td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- Snippets -->
+      <section class="view" data-view-id="snippets">
+        <div class="view-header">
+          <div><h1>Snippets</h1><p>AWK / Shell / Python / SQL / Kibana / YAML…</p></div>
+          <button class="btn btn-primary" data-toast="Thêm snippet mới (demo)">＋ New Snippet</button>
+        </div>
+        <table class="table">
+          <thead><tr><th>Name</th><th>Language</th><th>Tags</th><th>Updated</th><th></th></tr></thead>
+          <tbody>
+            <tr><td>Extract MSISDN from CDR</td><td><span class="badge">AWK</span></td><td>cdr, awk</td><td>1 day ago</td><td><button class="btn btn-sm" data-toast="Đã copy snippet">Copy</button></td></tr>
+            <tr><td>Bulk index Elasticsearch</td><td><span class="badge">Kibana</span></td><td>elasticsearch</td><td>3 days ago</td><td><button class="btn btn-sm" data-toast="Đã copy snippet">Copy</button></td></tr>
+            <tr><td>Rolling restart deployment</td><td><span class="badge">Shell</span></td><td>k8s</td><td>1 week ago</td><td><button class="btn btn-sm" data-toast="Đã copy snippet">Copy</button></td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- Troubleshooting -->
+      <section class="view" data-view-id="troubleshooting">
+        <div class="view-header">
+          <div><h1>Troubleshooting</h1><p>Nhật ký sự cố &amp; root cause</p></div>
+          <button class="btn btn-primary" data-toast="Tạo case mới (demo)">＋ New Case</button>
+        </div>
+        <div class="widget-grid">
+          <div class="card">
+            <div class="card-title">REQUEST_TIMEOUT trên Diameter CCR <span class="badge badge-danger">CRITICAL</span></div>
+            <p style="color:var(--text-secondary)">System: OCS · Component: PCRF · Status:</p>
+            <span class="badge badge-accent">INVESTIGATING</span>
+          </div>
+          <div class="card">
+            <div class="card-title">Elasticsearch cluster yellow <span class="badge badge-warning">MEDIUM</span></div>
+            <p style="color:var(--text-secondary)">System: Elasticsearch · Component: Shard allocation · Status:</p>
+            <span class="badge badge-success">RESOLVED</span>
+          </div>
+          <div class="card">
+            <div class="card-title">Kafka consumer lag tăng đột biến <span class="badge badge-warning">MEDIUM</span></div>
+            <p style="color:var(--text-secondary)">System: Kafka · Component: Consumer group · Status:</p>
+            <span class="badge">OPEN</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Flashcards -->
+      <section class="view" data-view-id="flashcards">
+        <div class="view-header">
+          <div><h1>Flashcards</h1><p>Học bằng flashcard theo chủ đề kỹ thuật</p></div>
+          <button class="btn btn-primary" data-toast="Tạo flashcard mới (demo)">＋ New Card</button>
+        </div>
+        <div class="widget-grid" style="grid-template-columns: 2fr 1fr;">
+          <div class="card" style="text-align:center; padding:36px 20px;">
+            <span class="badge badge-accent" style="margin-bottom:14px;">Kubernetes</span>
+            <h2 style="margin:8px 0 20px;">What does <code>kubectl rollout restart</code> do?</h2>
+            <button class="btn" data-toast="Show Answer (demo)">Show Answer</button>
+            <div class="toolbar" style="justify-content:center; margin-top:20px;">
+              <button class="btn btn-sm" data-toast="Marked: Again">Again</button>
+              <button class="btn btn-sm" data-toast="Marked: Hard">Hard</button>
+              <button class="btn btn-sm" data-toast="Marked: Good">Good</button>
+              <button class="btn btn-sm" data-toast="Marked: Easy">Easy</button>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">Study Dashboard</div>
+            <ul class="list-plain">
+              <li class="list-row"><span class="title">Cards reviewed</span><span class="meta">32</span></li>
+              <li class="list-row"><span class="title">Study time</span><span class="meta">18 min</span></li>
+              <li class="list-row"><span class="title">Topics learned</span><span class="meta">6</span></li>
+              <li class="list-row"><span class="title">Topics needing review</span><span class="meta">3</span></li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- File Compare -->
+      <section class="view" data-view-id="file-compare">
+        <div class="view-header">
+          <div><h1>🔍 File Compare</h1><p>2-Way Compare · Multi-File Compare · Key-Based Record Compare</p></div>
+        </div>
+        <div class="widget-grid" style="grid-template-columns: 1fr 1fr;">
+          <div class="dropzone"><div class="dz-icon">📄</div>File A — Drop file here or <u>Choose File</u></div>
+          <div class="dropzone"><div class="dz-icon">📄</div>File B — Drop file here or <u>Choose File</u></div>
+        </div>
+        <div class="toolbar">
+          <span class="chip active">Full Text</span>
+          <span class="chip">Line by Line</span>
+          <span class="chip">Column by Column</span>
+          <span class="chip">Key-Based Record</span>
+          <span class="spacer"></span>
+          <button class="btn btn-sm">Delimiter: Auto ▾</button>
+        </div>
+        <div class="toolbar">
+          <label class="chip"><input type="checkbox" checked> Ignore whitespace</label>
+          <label class="chip"><input type="checkbox"> Ignore blank lines</label>
+          <label class="chip"><input type="checkbox"> Ignore case</label>
+          <label class="chip"><input type="checkbox"> Ignore line ending</label>
+          <label class="chip"><input type="checkbox"> Trim fields</label>
+          <label class="chip"><input type="checkbox"> Ignore record order</label>
+          <label class="chip"><input type="checkbox"> Ignore duplicate records</label>
+        </div>
+        <button class="btn btn-primary" data-toast="Chức năng Compare sẽ được nối trong bản tiếp theo">▶ Compare</button>
+
+        <div class="card" style="margin-top:18px;">
+          <div class="card-title">Compare Result (mock)</div>
+          <div class="stat-row" style="grid-template-columns: repeat(5, 1fr);">
+            <div class="stat-card"><div class="stat-value">100,523</div><div class="stat-label">File A lines</div></div>
+            <div class="stat-card"><div class="stat-value">100,527</div><div class="stat-label">File B lines</div></div>
+            <div class="stat-card"><div class="stat-value" style="color:var(--success)">100,100</div><div class="stat-label">Same</div></div>
+            <div class="stat-card"><div class="stat-value" style="color:var(--warning)">573</div><div class="stat-label">Modified</div></div>
+            <div class="stat-card"><div class="stat-value" style="color:var(--danger)">427 / 423</div><div class="stat-label">Added / Deleted</div></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- File Splitter / Analyzer / Converter / Viewer / Data Cleaner : generic tool placeholders, rendered by JS -->
+
+      <!-- Settings -->
+      <section class="view" data-view-id="settings">
+        <div class="view-header"><div><h1>Settings</h1><p>Cấu hình ứng dụng</p></div></div>
+        <div class="widget-grid">
+          <div class="card">
+            <div class="card-title">General</div>
+            <ul class="list-plain">
+              <li class="list-row"><span class="title">Language</span><span class="meta">Tiếng Việt / English</span></li>
+              <li class="list-row"><span class="title">Startup view</span><span class="meta">Dashboard</span></li>
+            </ul>
+          </div>
+          <div class="card">
+            <div class="card-title">Appearance</div>
+            <ul class="list-plain">
+              <li class="list-row"><span class="title">Theme</span><span class="meta">Dark / Light</span></li>
+              <li class="list-row"><span class="title">Sidebar</span><span class="meta">Expanded</span></li>
+            </ul>
+          </div>
+          <div class="card">
+            <div class="card-title">File Tools</div>
+            <ul class="list-plain">
+              <li class="list-row"><span class="title">Default encoding</span><span class="meta">UTF-8</span></li>
+              <li class="list-row"><span class="title">Default delimiter</span><span class="meta">Auto</span></li>
+              <li class="list-row"><span class="title">Chunk size</span><span class="meta">64 MB</span></li>
+              <li class="list-row"><span class="title">Worker count</span><span class="meta">4</span></li>
+            </ul>
+          </div>
+          <div class="card">
+            <div class="card-title">Backup</div>
+            <div class="list-plain">
+              <button class="btn" data-toast="Backup Now (demo)">Backup Now</button>
+              <button class="btn" data-toast="Restore (demo)">Restore</button>
+              <button class="btn" data-toast="Export (demo)">Export</button>
+              <button class="btn" data-toast="Import (demo)">Import</button>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">Shortcuts</div>
+            <ul class="list-plain">
+              <li class="list-row"><span class="title">Search</span><span class="meta"><kbd>Ctrl K</kbd></span></li>
+              <li class="list-row"><span class="title">Save</span><span class="meta"><kbd>Ctrl S</kbd></span></li>
+              <li class="list-row"><span class="title">Quick Capture</span><span class="meta"><kbd>Ctrl Shift N</kbd></span></li>
+              <li class="list-row"><span class="title">Command Palette</span><span class="meta"><kbd>Ctrl Shift P</kbd></span></li>
+              <li class="list-row"><span class="title">Focus Mode</span><span class="meta"><kbd>Ctrl Shift F</kbd></span></li>
+            </ul>
+          </div>
+          <div class="card">
+            <div class="card-title">About</div>
+            <p style="color:var(--text-secondary)">vNote Ultra Web — 100% static, offline-first personal knowledge &amp; file operations center.</p>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ============ STATUS BAR ============ -->
+  <footer class="statusbar">
+    <span id="status-save">💾 Saved ✓</span>
+    <span>📝 Notes: 125</span>
+    <span>✅ Tasks: 8</span>
+    <span>🔤 Words: 12,450</span>
+    <span class="grow"></span>
+    <span>Storage: Local</span>
+    <span>Internet: OFFLINE-FIRST</span>
+  </footer>
+
+  <!-- ============ MOBILE BOTTOM NAV ============ -->
+  <nav class="mobile-nav">
+    <button class="active" data-view="dashboard"><span class="mn-icon">🏠</span>Home</button>
+    <button data-view="notes"><span class="mn-icon">📝</span>Notes</button>
+    <button id="mn-search"><span class="mn-icon">🔍</span>Search</button>
+    <button data-view="tasks"><span class="mn-icon">✅</span>Tasks</button>
+    <button data-view="file-compare"><span class="mn-icon">📂</span>Files</button>
+  </nav>
+</div>
+
+<!-- ============ GLOBAL SEARCH MODAL ============ -->
+<div class="overlay" id="overlay-search">
+  <div class="modal">
+    <input class="modal-input" id="search-input" placeholder="Search notes, tasks, commands, snippets… (tag:ocs, status:todo, priority:high)" autocomplete="off">
+    <div class="modal-list" id="search-results">
+      <div class="modal-item"><span>📝</span><span class="title">OCS Architecture Overview</span><span class="item-meta">Note</span></div>
+      <div class="modal-item"><span>🧰</span><span class="title">kubectl get pods -A</span><span class="item-meta">Command</span></div>
+      <div class="modal-item"><span>🐛</span><span class="title">REQUEST_TIMEOUT trên Diameter CCR</span><span class="item-meta">Troubleshooting</span></div>
+      <div class="modal-item"><span>✅</span><span class="title">Kiểm tra alarm CCR/CCA trên PCRF</span><span class="item-meta">Task</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ COMMAND PALETTE MODAL ============ -->
+<div class="overlay" id="overlay-palette">
+  <div class="modal">
+    <input class="modal-input" id="palette-input" placeholder="Type a command…" autocomplete="off">
+    <div class="modal-list" id="palette-results"></div>
+  </div>
+</div>
+
+<!-- ============ QUICK CAPTURE MODAL ============ -->
+<div class="overlay" id="overlay-capture">
+  <div class="modal">
+    <textarea class="qc-textarea" placeholder="Nhập nhanh…" id="capture-textarea"></textarea>
+    <div class="qc-type-row">
+      <span class="chip active" data-type="Note">Note</span>
+      <span class="chip" data-type="Task">Task</span>
+      <span class="chip" data-type="Command">Command</span>
+      <span class="chip" data-type="Issue">Issue</span>
+      <span class="chip" data-type="Idea">Idea</span>
+    </div>
+    <div class="modal-footer">
+      <span style="color:var(--text-muted); font-size:11.5px; align-self:center;">Esc to cancel</span>
+      <span class="spacer" style="flex:1"></span>
+      <button class="btn" id="capture-cancel">Cancel</button>
+      <button class="btn btn-primary" id="capture-save">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="js/app.js"></script>
+</body>
+</html>
