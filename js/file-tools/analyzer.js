@@ -22,11 +22,55 @@ window.VNoteFileAnalyzer = (function () {
   function analyze(file) {
     var e = els();
     state.file = file;
-    state.signal = { aborted: false };
     e.result.hidden = true;
     e.progressWrap.hidden = false;
     e.progressFill.style.width = '0%';
     e.progressText.textContent = 'Đang phân tích…';
+    var hasHeader = e.hasHeader.checked;
+
+    var worker = null;
+    try {
+      worker = new Worker('workers/analyzer-worker.js');
+    } catch (err) {
+      worker = null;
+    }
+
+    if (worker) {
+      state.worker = worker;
+      var gotResult = false;
+      worker.onmessage = function (ev) {
+        var msg = ev.data;
+        if (msg.type === 'progress') {
+          var pct = msg.total ? Math.round((msg.loaded / msg.total) * 100) : 100;
+          e.progressFill.style.width = pct + '%';
+          e.progressText.textContent = 'Đang phân tích (Web Worker)… ' + pct + '% (' + P.formatBytes(msg.loaded) + ' / ' + P.formatBytes(msg.total) + ')';
+        } else if (msg.type === 'done') {
+          gotResult = true;
+          e.progressWrap.hidden = true;
+          renderResult(Object.assign({ file: file }, msg.result));
+          worker.terminate();
+        } else if (msg.type === 'error') {
+          gotResult = true;
+          e.progressWrap.hidden = true;
+          e.progressText.textContent = 'Lỗi khi đọc file';
+          worker.terminate();
+        }
+      };
+      worker.onerror = function () {
+        if (gotResult) return;
+        worker.terminate();
+        analyzeMainThread(file, hasHeader);
+      };
+      worker.postMessage({ file: file, hasHeader: hasHeader });
+    } else {
+      analyzeMainThread(file, hasHeader);
+    }
+  }
+
+  /** Fallback used when Web Workers are unavailable (e.g. index.html opened directly via file://). */
+  function analyzeMainThread(file, hasHeader) {
+    var e = els();
+    state.signal = { aborted: false };
 
     var lineCount = 0, emptyLines = 0;
     var seen = new Map();
@@ -34,7 +78,6 @@ window.VNoteFileAnalyzer = (function () {
     var columnValues = null;
     var delimiter = null;
     var headerCols = null;
-    var hasHeader = e.hasHeader.checked;
 
     P.streamLines(file, {
       chunkSize: 8 * 1024 * 1024,
@@ -138,7 +181,10 @@ window.VNoteFileAnalyzer = (function () {
   function bindOnce() {
     var e = els();
     P.setupDropzone(e.dropzone, e.input, function (files) { analyze(files[0]); });
-    e.cancelBtn.addEventListener('click', function () { if (state.signal) state.signal.aborted = true; });
+    e.cancelBtn.addEventListener('click', function () {
+      if (state.worker) { state.worker.terminate(); state.worker = null; e.progressWrap.hidden = true; }
+      if (state.signal) state.signal.aborted = true;
+    });
     e.hasHeader.addEventListener('change', function () { if (state.file) analyze(state.file); });
   }
 

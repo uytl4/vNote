@@ -39,7 +39,6 @@ window.VNoteFileSplitter = (function () {
   function run() {
     var e = els();
     if (!state.file) return;
-    state.signal = { aborted: false };
     state.parts = [];
     e.result.hidden = true;
     e.progressWrap.hidden = false;
@@ -47,19 +46,64 @@ window.VNoteFileSplitter = (function () {
 
     var mode = e.mode.value;
     var value = Number(e.value.value) || (mode === 'lines' ? 500000 : 50);
-    var maxBytes = mode === 'size' ? value * 1024 * 1024 : Infinity;
-    var maxLines = mode === 'lines' ? value : Infinity;
     var preserveHeader = e.preserveHeader.checked;
-    var encoder = new TextEncoder();
     var name = baseAndExt(state.file.name);
 
-    var headerLine = null;
-    var currentLines = [];
-    var currentBytes = 0;
-    var partIndex = 0;
-    var totalLines = 0;
+    var worker = null;
+    try { worker = new Worker('workers/file-worker.js'); } catch (err) { worker = null; }
 
-    function flushPart(isLast) {
+    if (worker) {
+      state.worker = worker;
+      var gotResult = false;
+      worker.onmessage = function (ev) {
+        var msg = ev.data;
+        if (msg.type === 'progress') {
+          e.progressFill.style.width = msg.pct + '%';
+          e.progressText.textContent = 'Đang chia file (Web Worker)… ' + msg.pct + '%';
+        } else if (msg.type === 'done') {
+          gotResult = true;
+          state.parts = msg.parts;
+          e.progressWrap.hidden = true;
+          renderResult();
+          logHistory(msg.totalLines);
+          worker.terminate();
+        } else if (msg.type === 'error') {
+          gotResult = true;
+          e.progressWrap.hidden = true;
+          e.result.hidden = false;
+          e.result.innerHTML = '<p style="color:var(--danger)">Lỗi: ' + window.VNoteUtil.escapeHtml(msg.message) + '</p>';
+          worker.terminate();
+        }
+      };
+      worker.onerror = function () {
+        if (gotResult) return;
+        worker.terminate();
+        runMainThread(mode, value, preserveHeader, name);
+      };
+      worker.postMessage({ file: state.file, mode: mode, value: value, preserveHeader: preserveHeader, baseName: name.base, ext: name.ext });
+    } else {
+      runMainThread(mode, value, preserveHeader, name);
+    }
+  }
+
+  function logHistory(totalLines) {
+    window.VNoteDB.put('history', {
+      id: window.VNoteDB.uid(), type: 'SPLIT', input: state.file.name, output: state.parts.length + ' parts',
+      result: totalLines + ' lines → ' + state.parts.length + ' files', createdAt: new Date().toISOString()
+    });
+  }
+
+  /** Fallback used when Web Workers are unavailable (e.g. index.html opened directly via file://). */
+  function runMainThread(mode, value, preserveHeader, name) {
+    var e = els();
+    state.signal = { aborted: false };
+    var maxBytes = mode === 'size' ? value * 1024 * 1024 : Infinity;
+    var maxLines = mode === 'lines' ? value : Infinity;
+    var encoder = new TextEncoder();
+
+    var headerLine = null, currentLines = [], currentBytes = 0, partIndex = 0, totalLines = 0;
+
+    function flushPart() {
       if (!currentLines.length) return;
       partIndex++;
       var text = currentLines.join('\n') + '\n';
@@ -81,12 +125,12 @@ window.VNoteFileSplitter = (function () {
       },
       onLine: function (line, idx) {
         totalLines++;
-        if (preserveHeader && idx === 0) { headerLine = line; if (mode !== 'lines' || true) { /* header repeated per part below */ } return; }
+        if (preserveHeader && idx === 0) { headerLine = line; return; }
 
         var lineBytes = encoder.encode(line).length + 1;
         var wouldExceedLines = currentLines.length >= maxLines;
         var wouldExceedBytes = (currentBytes + lineBytes) > maxBytes && currentLines.length > 0;
-        if (wouldExceedLines || wouldExceedBytes) flushPart(false);
+        if (wouldExceedLines || wouldExceedBytes) flushPart();
 
         if (preserveHeader && headerLine !== null && currentLines.length === 0) {
           currentLines.push(headerLine);
@@ -96,13 +140,9 @@ window.VNoteFileSplitter = (function () {
         currentBytes += lineBytes;
       }
     }).then(function () {
-      flushPart(true);
-      renderResult(totalLines);
-
-      window.VNoteDB.put('history', {
-        id: window.VNoteDB.uid(), type: 'SPLIT', input: state.file.name, output: state.parts.length + ' parts',
-        result: totalLines + ' lines → ' + state.parts.length + ' files', createdAt: new Date().toISOString()
-      });
+      flushPart();
+      renderResult();
+      logHistory(totalLines);
     }).catch(function (err) {
       if (err.name !== 'AbortError') {
         e.result.hidden = false;
@@ -149,7 +189,10 @@ window.VNoteFileSplitter = (function () {
       e.value.value = e.mode.value === 'lines' ? 500000 : 50;
     });
     e.runBtn.addEventListener('click', run);
-    e.cancelBtn.addEventListener('click', function () { if (state.signal) state.signal.aborted = true; });
+    e.cancelBtn.addEventListener('click', function () {
+      if (state.worker) { state.worker.terminate(); state.worker = null; e.progressWrap.hidden = true; }
+      if (state.signal) state.signal.aborted = true;
+    });
     e.downloadZip.addEventListener('click', downloadZip);
   }
 

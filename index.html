@@ -597,6 +597,15 @@
           <input class="field-input grow" id="cleaner-replace" placeholder="Replace with…">
           <label class="chip"><input type="checkbox" id="cleaner-use-regex"> Regex</label>
         </div>
+        <div class="toolbar">
+          <span style="color:var(--text-secondary); font-size:12px;">Filter</span>
+          <select class="field-input" id="cleaner-filter-mode">
+            <option value="none">No filter</option>
+            <option value="keep">Keep lines containing…</option>
+            <option value="remove">Remove lines containing…</option>
+          </select>
+          <input class="field-input grow" id="cleaner-filter-value" placeholder="Text or /regex/">
+        </div>
         <button class="btn btn-primary" id="cleaner-run">▶ Run &amp; Download</button>
         <div id="cleaner-progress-wrap" hidden style="margin:14px 0;">
           <div class="progress-bar"><div class="fill" id="cleaner-progress-fill"></div></div>

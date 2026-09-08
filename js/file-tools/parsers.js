@@ -1,4 +1,4 @@
-window.VNoteParsers = (function () {
+(typeof window !== 'undefined' ? window : self).VNoteParsers = (function () {
   'use strict';
 
   var ENCODING_MAP = {

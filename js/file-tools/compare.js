@@ -162,18 +162,90 @@ window.VNoteFileCompare = (function () {
     return { same: same, added: added, deleted: deleted, modified: modified, duplicate: A.dup + B.dup, rows: rows, totalA: linesA.length - startIdx, totalB: linesB.length - startIdx };
   }
 
+  function buildOpts(sampleForDelim) {
+    var e = els();
+    var delim = activeDelimiter(sampleForDelim);
+    var opts = {
+      trim: e.optTrim.checked, whitespace: e.optWhitespace.checked, caseInsensitive: e.optCase.checked,
+      ignoreBlank: e.optBlank.checked, ignoreOrder: e.optOrder.checked, ignoreDup: e.optDup.checked,
+      delimiter: delim, hasHeader: e.hasHeader.checked
+    };
+    if (state.mode === 'key') {
+      opts.keyIndices = Array.from(e.keyColumns.querySelectorAll('.key-col:checked')).map(function (c) { return Number(c.value); });
+      opts.compareIndices = Array.from(e.compareColumns.querySelectorAll('.cmp-col:checked')).map(function (c) { return Number(c.value); });
+    }
+    return opts;
+  }
+
+  function finishResult(result) {
+    var e = els();
+    state.lastResult = result;
+    renderResult(result, state.fileA.name, state.fileB.name);
+    window.VNoteDB.put('history', {
+      id: window.VNoteDB.uid(), type: 'COMPARE', input: state.fileA.name + ' vs ' + state.fileB.name, output: '',
+      result: 'Same:' + result.same + ' Added:' + result.added + ' Deleted:' + result.deleted + ' Modified:' + result.modified,
+      createdAt: new Date().toISOString()
+    });
+    e.progressWrap.hidden = true;
+  }
+
   function run() {
     var e = els();
     if (!state.fileA || !state.fileB) { alert('Vui lòng chọn cả File A và File B.'); return; }
-    state.signal = { aborted: false };
     e.result.hidden = true;
     e.progressWrap.hidden = false;
     e.progressFill.style.width = '0%';
 
+    state.fileA.slice(0, 65536).text().then(function (chunk) {
+      var sampleForDelim = chunk.split(/\r\n|\r|\n/).filter(Boolean).slice(0, 20);
+      var opts = buildOpts(sampleForDelim);
+      if (state.mode === 'key' && !opts.keyIndices.length) {
+        alert('Vui lòng chọn ít nhất 1 Key Column.');
+        e.progressWrap.hidden = true;
+        return;
+      }
+
+      var worker = null;
+      try { worker = new Worker('workers/compare-worker.js'); } catch (err) { worker = null; }
+
+      if (worker) {
+        state.worker = worker;
+        var gotResult = false;
+        worker.onmessage = function (ev) {
+          var msg = ev.data;
+          if (msg.type === 'progress') {
+            e.progressFill.style.width = msg.pct + '%';
+            e.progressText.textContent = 'Đang so sánh (Web Worker)… ' + msg.pct + '%';
+          } else if (msg.type === 'done') {
+            gotResult = true;
+            finishResult(msg.result);
+            worker.terminate();
+          } else if (msg.type === 'error') {
+            gotResult = true;
+            e.progressWrap.hidden = true;
+            e.result.hidden = false;
+            e.result.innerHTML = '<p style="color:var(--danger)">Lỗi: ' + U.escapeHtml(msg.message) + '</p>';
+            worker.terminate();
+          }
+        };
+        worker.onerror = function () {
+          if (gotResult) return;
+          worker.terminate();
+          runMainThread(opts);
+        };
+        worker.postMessage({ fileA: state.fileA, fileB: state.fileB, mode: state.mode, opts: opts });
+      } else {
+        runMainThread(opts);
+      }
+    });
+  }
+
+  /** Fallback used when Web Workers are unavailable (e.g. index.html opened directly via file://). */
+  function runMainThread(opts) {
+    var e = els();
+    state.signal = { aborted: false };
     var totalBytes = state.fileA.size + state.fileB.size;
     var loadedA = 0, loadedB = 0;
-    function progressA(l) { loadedA = l; updateProgress(); }
-    function progressB(l) { loadedB = l; updateProgress(); }
     function updateProgress() {
       var pct = totalBytes ? Math.round(((loadedA + loadedB) / totalBytes) * 100) : 100;
       e.progressFill.style.width = pct + '%';
@@ -181,42 +253,19 @@ window.VNoteFileCompare = (function () {
     }
 
     Promise.all([
-      readAllLines(state.fileA, progressA, state.signal),
-      readAllLines(state.fileB, progressB, state.signal)
+      readAllLines(state.fileA, function (l) { loadedA = l; updateProgress(); }, state.signal),
+      readAllLines(state.fileB, function (l) { loadedB = l; updateProgress(); }, state.signal)
     ]).then(function (res) {
       var linesA = res[0], linesB = res[1];
-      var sampleForDelim = linesA.slice(0, 20);
-      var delim = e.modeGroup.dataset.mode === 'key' || e.modeGroup.dataset.mode === 'column' || e.delimiter.value !== 'auto' ? activeDelimiter(sampleForDelim) : (e.delimiter.value === 'auto' ? activeDelimiter(sampleForDelim) : null);
-      var opts = {
-        trim: e.optTrim.checked, whitespace: e.optWhitespace.checked, caseInsensitive: e.optCase.checked,
-        ignoreBlank: e.optBlank.checked, ignoreOrder: e.optOrder.checked, ignoreDup: e.optDup.checked,
-        delimiter: delim, hasHeader: e.hasHeader.checked
-      };
-
-      var result;
-      if (state.mode === 'key') {
-        opts.keyIndices = Array.from(e.keyColumns.querySelectorAll('.key-col:checked')).map(function (c) { return Number(c.value); });
-        opts.compareIndices = Array.from(e.compareColumns.querySelectorAll('.cmp-col:checked')).map(function (c) { return Number(c.value); });
-        if (!opts.keyIndices.length) { alert('Vui lòng chọn ít nhất 1 Key Column.'); e.progressWrap.hidden = true; return; }
-        result = runKeyBasedCompare(linesA, linesB, opts);
-      } else {
-        result = runAlignedCompare(linesA, linesB, opts);
-      }
-
-      state.lastResult = result;
-      renderResult(result, state.fileA.name, state.fileB.name);
-
-      window.VNoteDB.put('history', {
-        id: window.VNoteDB.uid(), type: 'COMPARE', input: state.fileA.name + ' vs ' + state.fileB.name, output: '',
-        result: 'Same:' + result.same + ' Added:' + result.added + ' Deleted:' + result.deleted + ' Modified:' + result.modified,
-        createdAt: new Date().toISOString()
-      });
+      var result = state.mode === 'key' ? runKeyBasedCompare(linesA, linesB, opts) : runAlignedCompare(linesA, linesB, opts);
+      finishResult(result);
     }).catch(function (err) {
       if (err.name !== 'AbortError') {
         e.result.hidden = false;
         e.result.innerHTML = '<p style="color:var(--danger)">Lỗi: ' + U.escapeHtml(err.message || String(err)) + '</p>';
       }
-    }).then(function () { e.progressWrap.hidden = true; });
+      e.progressWrap.hidden = true;
+    });
   }
 
   var activeTab = 'All';
@@ -322,7 +371,10 @@ window.VNoteFileCompare = (function () {
     e.delimiter.addEventListener('change', refreshColumnPickers);
     e.hasHeader.addEventListener('change', refreshColumnPickers);
     e.runBtn.addEventListener('click', run);
-    e.cancelBtn.addEventListener('click', function () { if (state.signal) state.signal.aborted = true; });
+    e.cancelBtn.addEventListener('click', function () {
+      if (state.worker) { state.worker.terminate(); state.worker = null; e.progressWrap.hidden = true; }
+      if (state.signal) state.signal.aborted = true;
+    });
 
     e.tabs.addEventListener('click', function (ev) {
       var chip = ev.target.closest('.chip'); if (!chip) return;

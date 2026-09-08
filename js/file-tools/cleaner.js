@@ -18,6 +18,8 @@ window.VNoteFileCleaner = (function () {
       findInput: document.getElementById('cleaner-find'),
       replaceInput: document.getElementById('cleaner-replace'),
       useRegex: document.getElementById('cleaner-use-regex'),
+      filterMode: document.getElementById('cleaner-filter-mode'),
+      filterValue: document.getElementById('cleaner-filter-value'),
       runBtn: document.getElementById('cleaner-run'),
       progressWrap: document.getElementById('cleaner-progress-wrap'),
       progressFill: document.getElementById('cleaner-progress-fill'),
@@ -45,6 +47,21 @@ window.VNoteFileCleaner = (function () {
       try { regex = new RegExp(find, 'g'); } catch (err) { alert('Regex không hợp lệ: ' + err.message); e.progressWrap.hidden = true; return; }
     }
 
+    var filterMode = e.filterMode.value;
+    var filterValue = e.filterValue.value;
+    var filterRegex = null;
+    if (filterMode !== 'none' && filterValue) {
+      var regexMatch = /^\/(.*)\/([a-z]*)$/.exec(filterValue);
+      if (regexMatch) {
+        try { filterRegex = new RegExp(regexMatch[1], regexMatch[2]); } catch (err) { alert('Filter regex không hợp lệ: ' + err.message); e.progressWrap.hidden = true; return; }
+      }
+    }
+    function passesFilter(line) {
+      if (filterMode === 'none' || !filterValue) return true;
+      var matches = filterRegex ? filterRegex.test(line) : line.indexOf(filterValue) !== -1;
+      return filterMode === 'keep' ? matches : !matches;
+    }
+
     var inputCount = 0;
     var lines = [];
     var seen = new Set();
@@ -58,6 +75,7 @@ window.VNoteFileCleaner = (function () {
         inputCount++;
         if (e.trim.checked) line = line.trim();
         if (find) line = regex ? line.replace(regex, replace) : line.split(find).join(replace);
+        if (!passesFilter(line)) return;
         if (e.removeEmpty.checked && line === '') return;
         if (e.removeDup.checked) {
           if (seen.has(line)) return;

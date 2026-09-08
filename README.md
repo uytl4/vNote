@@ -47,8 +47,7 @@ python3 -m http.server 8080
 
 All six tools under 📂 FILE TOOLS are real, working implementations — not mockups:
 
-- **Shared engine** (`js/file-tools/parsers.js`): `streamLines`/`streamBytes` read a `File` in chunks (`File.slice()` + `arrayBuffer()`), decode incrementally with `TextDecoder(..., {stream:true})`, and yield to the event loop between chunks — so the UI stays responsive and the whole file is never held in memory as one string. Encoding (UTF-8/UTF-8 BOM/UTF-16 LE/UTF-16 BE, with a Windows-1252/ANSI override), line-ending, and delimiter are auto-detected, with manual overrides in the UI.
-  - *Known simplification*: this streams on the main thread with cooperative yielding rather than in a dedicated Web Worker (the spec's `workers/*.js`). It does not block the UI for typical multi-hundred-MB files, but a true worker would be a further hardening step for very large files or multi-core throughput.
+- **Shared engine** (`js/file-tools/parsers.js`): `streamLines`/`streamBytes` read a `File` in chunks (`File.slice()` + `arrayBuffer()`), decode incrementally with `TextDecoder(..., {stream:true})`, and yield to the event loop between chunks — so the UI stays responsive and the whole file is never held in memory as one string. Encoding (UTF-8/UTF-8 BOM/UTF-16 LE/UTF-16 BE, with a Windows-1252/ANSI override), line-ending, and delimiter are auto-detected, with manual overrides in the UI. This same engine also runs inside the Web Workers added in Phase 7 below.
 - **File Compare**: Full Text / Line by Line / Column by Column (index-aligned, with per-column diff detail) and Key-Based Record Compare (pick key column(s) + compare columns after loading File A's header) — all with Ignore whitespace/blank lines/case/trim/record order/duplicates. Same/Added/Deleted/Modified counts and a filterable result table, Export Added/Deleted/Modified/All (CSV/JSON), "Create Note From Result", progress bar + Cancel, and MD5/SHA-256 hashing with an identical-files check.
 - **File Splitter**: split by line count or size (MB), optional header-preservation per part, per-part download links, and "Download All as ZIP" (a small dependency-free ZIP writer in `js/file-tools/zip.js`, store method — no external library).
 - **File Analyzer**: file info (encoding/line-ending/lines/columns/delimiter/empty & duplicate lines) plus per-column analysis (detected type, empty/unique counts, min/max), sampled for very wide/long files.
@@ -71,10 +70,15 @@ All six tools under 📂 FILE TOOLS are real, working implementations — not mo
 - **Settings → Backup → Full Backup (.zip)**: exports a ZIP (via the same dependency-free writer used by File Splitter) containing `data.json` (the full store dump) plus one `.md` file per active note under `notes/` (with a small YAML-style frontmatter block) — satisfying the spec's JSON + Markdown + ZIP export formats in one file.
 - **Import** now accepts either a `.json` backup or a `.zip` full backup (it reads `data.json` back out of the ZIP's central directory); round-tripped and verified to restore every note after a Clear Demo Data.
 
+**Phase 7 — Real Web Workers, Data Cleaner Filter**
+
+- File Analyzer, File Compare, and File Splitter now run their heavy work in dedicated Web Workers (`workers/analyzer-worker.js`, `workers/compare-worker.js`, `workers/file-worker.js` — matching the spec's own project structure), reusing the same `streamLines` engine so the UI thread is completely free during a large-file run.
+- **File:// fallback**: Chromium refuses to construct a `Worker` when the page is opened directly via `file://` (`SecurityError: ... cannot be accessed from origin 'null'`) — confirmed with a direct test. Each of the three tools catches that failure and transparently re-runs the exact same logic on the main thread instead (the original streaming implementation, kept as a fallback), so the app keeps working when someone just double-clicks `index.html`, and gets true multi-threading when served over http(s). Verified byte-identical results both ways on the same test files.
+- **Data Cleaner** gained the "Filter" operation from spec section 35: keep or remove lines matching plain text or a `/regex/`.
+
 **Not implemented yet**
 
-- Data Cleaner's "Filter" (conditional row filtering by expression) from spec section 35.
-- True Web Worker offload for File Tools (see the simplification note above).
+- File Converter and Data Cleaner still stream on the main thread only (no worker variant yet) — they don't block the UI thanks to cooperative yielding, but aren't multi-threaded.
 
 ## Structure
 
@@ -107,4 +111,8 @@ js/
     compare.js           File Compare
     splitter.js          File Splitter
   app.js               navigation, theme, modals, shortcuts, dashboard, search, settings wiring
+workers/
+  analyzer-worker.js   File Analyzer, off the main thread
+  compare-worker.js    File Compare, off the main thread
+  file-worker.js       File Splitter, off the main thread
 ```
