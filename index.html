@@ -118,30 +118,22 @@
         </div>
 
         <div class="stat-row">
-          <div class="stat-card"><div class="stat-value">12</div><div class="stat-label">Tasks</div></div>
-          <div class="stat-card"><div class="stat-value">8</div><div class="stat-label">Completed</div></div>
-          <div class="stat-card"><div class="stat-value">5</div><div class="stat-label">Notes</div></div>
-          <div class="stat-card"><div class="stat-value">2</div><div class="stat-label">Troubleshooting</div></div>
-          <div class="stat-card"><div class="stat-value">15</div><div class="stat-label">Files processed</div></div>
+          <div class="stat-card"><div class="stat-value" id="stat-tasks">–</div><div class="stat-label">Tasks</div></div>
+          <div class="stat-card"><div class="stat-value" id="stat-completed">–</div><div class="stat-label">Completed</div></div>
+          <div class="stat-card"><div class="stat-value" id="stat-notes">–</div><div class="stat-label">Notes</div></div>
+          <div class="stat-card"><div class="stat-value" id="stat-troubleshooting">2</div><div class="stat-label">Troubleshooting</div></div>
+          <div class="stat-card"><div class="stat-value" id="stat-files">15</div><div class="stat-label">Files processed</div></div>
         </div>
 
         <div class="widget-grid">
           <div class="card">
             <div class="card-title">Today's Tasks <span class="link" data-view-link="tasks">View all</span></div>
-            <ul class="list-plain">
-              <li class="list-row"><span class="dot"></span><span class="title">Kiểm tra alarm CCR/CCA trên PCRF</span><span class="badge badge-danger">High</span></li>
-              <li class="list-row"><span class="dot"></span><span class="title">Viết note tổng hợp lệnh kubectl</span><span class="badge badge-warning">Medium</span></li>
-              <li class="list-row"><span class="dot"></span><span class="title">Đối chiếu CDR ngày 07/09</span><span class="badge">Low</span></li>
-            </ul>
+            <ul class="list-plain" id="widget-today-tasks"></ul>
           </div>
 
           <div class="card">
             <div class="card-title">Recent Notes <span class="link" data-view-link="notes">View all</span></div>
-            <ul class="list-plain">
-              <li class="list-row"><span class="dot"></span><span class="title">OCS Architecture Overview</span><span class="meta">2h ago</span></li>
-              <li class="list-row"><span class="dot"></span><span class="title">Elasticsearch slow query checklist</span><span class="meta">5h ago</span></li>
-              <li class="list-row"><span class="dot"></span><span class="title">Kubernetes useful commands</span><span class="meta">Yesterday</span></li>
-            </ul>
+            <ul class="list-plain" id="widget-recent-notes"></ul>
           </div>
 
           <div class="card">
@@ -155,25 +147,17 @@
 
           <div class="card">
             <div class="card-title">Pinned Notes <span class="link" data-view-link="pinned">View all</span></div>
-            <ul class="list-plain">
-              <li class="list-row"><span class="dot"></span><span class="title">Diameter CCR / CCA cheat sheet</span></li>
-              <li class="list-row"><span class="dot"></span><span class="title">Linux AWK commands</span></li>
-            </ul>
+            <ul class="list-plain" id="widget-pinned-notes"></ul>
           </div>
 
           <div class="card">
             <div class="card-title">Favorites <span class="link" data-view-link="favorites">View all</span></div>
-            <ul class="list-plain">
-              <li class="list-row"><span class="dot"></span><span class="title">REQUEST_TIMEOUT troubleshooting</span></li>
-              <li class="list-row"><span class="dot"></span><span class="title">Kafka consumer lag</span></li>
-            </ul>
+            <ul class="list-plain" id="widget-favorite-notes"></ul>
           </div>
 
           <div class="card">
             <div class="card-title">Overdue Tasks <span class="link" data-view-link="tasks">View all</span></div>
-            <ul class="list-plain">
-              <li class="list-row"><span class="dot"></span><span class="title">Update runbook cho GGSN</span><span class="badge badge-danger">2 days</span></li>
-            </ul>
+            <ul class="list-plain" id="widget-overdue-tasks"></ul>
           </div>
 
           <div class="card">
@@ -199,16 +183,16 @@
 
           <div class="card quick-capture-widget">
             <div class="card-title">Quick Capture <kbd>Ctrl Shift N</kbd></div>
-            <textarea placeholder="Nhập nhanh note, task, command…"></textarea>
+            <textarea id="dash-capture-text" placeholder="Nhập nhanh note, task, command…"></textarea>
             <div class="row">
-              <select>
+              <select id="dash-capture-type">
                 <option>Note</option>
                 <option>Task</option>
                 <option>Command</option>
                 <option>Issue</option>
                 <option>Idea</option>
               </select>
-              <button class="btn btn-primary btn-sm" data-toast="Đã lưu (demo — chưa nối IndexedDB)">Save</button>
+              <button class="btn btn-primary btn-sm" id="dash-capture-save">Save</button>
             </div>
           </div>
         </div>
@@ -218,53 +202,97 @@
       <section class="view" data-view-id="notes">
         <div class="view-header">
           <div><h1>Notes</h1><p>Tất cả ghi chú công việc &amp; học tập</p></div>
-          <button class="btn btn-primary" data-toast="Tạo note mới (demo)">＋ New Note</button>
+          <button class="btn btn-primary" id="btn-new-note">＋ New Note</button>
         </div>
-        <div class="toolbar">
-          <span class="chip active">All</span>
-          <span class="chip">Draft</span>
-          <span class="chip">Todo</span>
-          <span class="chip">In Progress</span>
-          <span class="chip">Completed</span>
-          <span class="chip">Archived</span>
+        <div class="toolbar" id="notes-filter">
+          <span class="chip active" data-status="all">All</span>
+          <span class="chip" data-status="Draft">Draft</span>
+          <span class="chip" data-status="Todo">Todo</span>
+          <span class="chip" data-status="In Progress">In Progress</span>
+          <span class="chip" data-status="Completed">Completed</span>
+          <span class="chip" data-status="Archived">Archived</span>
           <span class="spacer"></span>
-          <button class="btn btn-sm">Sort ▾</button>
+          <input class="field-input" id="notes-quick-filter" placeholder="Filter by title/tag…">
         </div>
         <table class="table">
-          <thead><tr><th>Title</th><th>Category</th><th>Tags</th><th>Priority</th><th>Status</th><th>Updated</th></tr></thead>
-          <tbody>
-            <tr><td>OCS Architecture Overview</td><td>OCS</td><td>ocs, diameter</td><td><span class="badge badge-warning">Medium</span></td><td><span class="badge badge-success">Completed</span></td><td>2h ago</td></tr>
-            <tr><td>Elasticsearch slow query checklist</td><td>Elasticsearch</td><td>elasticsearch</td><td><span class="badge badge-danger">High</span></td><td><span class="badge badge-accent">In Progress</span></td><td>5h ago</td></tr>
-            <tr><td>Kubernetes useful commands</td><td>Kubernetes</td><td>k8s, cheatsheet</td><td><span class="badge">Low</span></td><td><span class="badge badge-success">Completed</span></td><td>Yesterday</td></tr>
-            <tr><td>Diameter CCR / CCA cheat sheet</td><td>OCS</td><td>diameter</td><td><span class="badge badge-warning">Medium</span></td><td><span class="badge badge-success">Completed</span></td><td>2 days ago</td></tr>
-            <tr><td>CDR Troubleshooting — REQUEST_TIMEOUT</td><td>CDR</td><td>cdr, timeout</td><td><span class="badge badge-danger">Critical</span></td><td><span class="badge">Draft</span></td><td>3 days ago</td></tr>
-          </tbody>
+          <thead><tr><th>Title</th><th>Category</th><th>Tags</th><th>Priority</th><th>Status</th><th>Updated</th><th></th></tr></thead>
+          <tbody id="notes-tbody"></tbody>
         </table>
+        <div class="empty-state" id="notes-empty" hidden>
+          <div class="empty-icon">📝</div>
+          <h3>Chưa có note nào</h3>
+          <p>Bắt đầu ghi lại kiến thức, troubleshooting, hoặc log công việc hằng ngày.</p>
+          <button class="btn btn-primary" id="btn-new-note-empty">＋ New Note</button>
+        </div>
       </section>
 
-      <!-- Pinned / Favorites / Daily Notes / Study / Projects / Analytics / Trash / WORK subcats / Knowledge Graph : generic placeholders, rendered by JS -->
+      <!-- Pinned -->
+      <section class="view" data-view-id="pinned">
+        <div class="view-header"><div><h1>📌 Pinned</h1><p>Ghi chú đã ghim để truy cập nhanh</p></div></div>
+        <table class="table">
+          <thead><tr><th>Title</th><th>Category</th><th>Status</th><th>Updated</th></tr></thead>
+          <tbody id="pinned-tbody"></tbody>
+        </table>
+        <div class="empty-state" id="pinned-empty" hidden>
+          <div class="empty-icon">📌</div><h3>Chưa ghim note nào</h3>
+          <p>Mở một note và bấm ghim để nó xuất hiện ở đây.</p>
+        </div>
+      </section>
+
+      <!-- Favorites -->
+      <section class="view" data-view-id="favorites">
+        <div class="view-header"><div><h1>⭐ Favorites</h1><p>Các mục bạn đã đánh dấu yêu thích</p></div></div>
+        <table class="table">
+          <thead><tr><th>Title</th><th>Category</th><th>Status</th><th>Updated</th></tr></thead>
+          <tbody id="favorites-tbody"></tbody>
+        </table>
+        <div class="empty-state" id="favorites-empty" hidden>
+          <div class="empty-icon">⭐</div><h3>Chưa có favorite nào</h3>
+          <p>Mở một note và bấm yêu thích để nó xuất hiện ở đây.</p>
+        </div>
+      </section>
+
+      <!-- Daily Notes / Study / Projects / Analytics / WORK subcats / Knowledge Graph : generic placeholders, rendered by JS -->
 
       <!-- Tasks -->
       <section class="view" data-view-id="tasks">
         <div class="view-header">
           <div><h1>Tasks</h1><p>Quản lý công việc theo trạng thái &amp; hạn chót</p></div>
-          <button class="btn btn-primary" data-toast="Tạo task mới (demo)">＋ New Task</button>
+          <button class="btn btn-primary" id="btn-new-task">＋ New Task</button>
         </div>
-        <div class="toolbar">
-          <span class="chip active">Today</span>
-          <span class="chip">Upcoming</span>
-          <span class="chip">Overdue</span>
-          <span class="chip">Completed</span>
+        <div class="toolbar" id="tasks-filter">
+          <span class="chip active" data-range="today">Today</span>
+          <span class="chip" data-range="upcoming">Upcoming</span>
+          <span class="chip" data-range="overdue">Overdue</span>
+          <span class="chip" data-range="completed">Completed</span>
         </div>
         <table class="table">
-          <thead><tr><th></th><th>Title</th><th>Project</th><th>Priority</th><th>Due</th><th>Status</th></tr></thead>
-          <tbody>
-            <tr><td><input type="checkbox"></td><td>Kiểm tra alarm CCR/CCA trên PCRF</td><td>OCS Monitoring</td><td><span class="badge badge-danger">High</span></td><td>Today</td><td><span class="badge badge-accent">In Progress</span></td></tr>
-            <tr><td><input type="checkbox"></td><td>Viết note tổng hợp lệnh kubectl</td><td>Documentation</td><td><span class="badge badge-warning">Medium</span></td><td>Today</td><td><span class="badge">Todo</span></td></tr>
-            <tr><td><input type="checkbox" checked></td><td>Đối chiếu CDR ngày 07/09</td><td>Telecom Ops</td><td><span class="badge">Low</span></td><td>Yesterday</td><td><span class="badge badge-success">Done</span></td></tr>
-            <tr><td><input type="checkbox"></td><td>Update runbook cho GGSN</td><td>Documentation</td><td><span class="badge badge-danger">High</span></td><td>2 days ago</td><td><span class="badge badge-danger">Overdue</span></td></tr>
-          </tbody>
+          <thead><tr><th></th><th>Title</th><th>Project</th><th>Priority</th><th>Due</th><th>Status</th><th></th></tr></thead>
+          <tbody id="tasks-tbody"></tbody>
         </table>
+        <div class="empty-state" id="tasks-empty" hidden>
+          <div class="empty-icon">✅</div>
+          <h3>Không có task nào ở mục này</h3>
+          <p>Thử chuyển sang bộ lọc khác, hoặc tạo task mới.</p>
+          <button class="btn btn-primary" id="btn-new-task-empty">＋ New Task</button>
+        </div>
+      </section>
+
+      <!-- Trash -->
+      <section class="view" data-view-id="trash">
+        <div class="view-header">
+          <div><h1>🗑️ Trash</h1><p>Notes &amp; tasks đã xoá — khôi phục hoặc xoá vĩnh viễn</p></div>
+          <button class="btn" id="btn-empty-trash">Empty Trash</button>
+        </div>
+        <table class="table">
+          <thead><tr><th>Title</th><th>Type</th><th>Deleted</th><th></th></tr></thead>
+          <tbody id="trash-tbody"></tbody>
+        </table>
+        <div class="empty-state" id="trash-empty" hidden>
+          <div class="empty-icon">🗑️</div>
+          <h3>Trash trống</h3>
+          <p>Các mục đã xoá sẽ xuất hiện ở đây trước khi bị xoá vĩnh viễn.</p>
+        </div>
       </section>
 
       <!-- Command Center -->
@@ -288,10 +316,10 @@
         <table class="table">
           <thead><tr><th>Name</th><th>Command</th><th>Category</th><th>Danger</th><th></th></tr></thead>
           <tbody>
-            <tr><td>List all pods</td><td><code>kubectl get pods -A</code></td><td>Kubernetes</td><td><span class="badge badge-success">Safe</span></td><td><button class="btn btn-sm" data-toast="Đã copy: kubectl get pods -A">Copy</button></td></tr>
-            <tr><td>Tail service log</td><td><code>journalctl -u ocs -f</code></td><td>Linux</td><td><span class="badge badge-success">Safe</span></td><td><button class="btn btn-sm" data-toast="Đã copy lệnh">Copy</button></td></tr>
-            <tr><td>Delete pod</td><td><code>kubectl delete pod &lt;name&gt;</code></td><td>Kubernetes</td><td><span class="badge badge-danger">Dangerous</span></td><td><button class="btn btn-sm" data-toast="Đã copy lệnh">Copy</button></td></tr>
-            <tr><td>Restart service</td><td><code>systemctl restart ocs</code></td><td>Linux</td><td><span class="badge badge-danger">Dangerous</span></td><td><button class="btn btn-sm" data-toast="Đã copy lệnh">Copy</button></td></tr>
+            <tr><td>List all pods</td><td><code>kubectl get pods -A</code></td><td>Kubernetes</td><td><span class="badge badge-success">Safe</span></td><td><button class="btn btn-sm" data-copy="kubectl get pods -A">Copy</button></td></tr>
+            <tr><td>Tail service log</td><td><code>journalctl -u ocs -f</code></td><td>Linux</td><td><span class="badge badge-success">Safe</span></td><td><button class="btn btn-sm" data-copy="journalctl -u ocs -f">Copy</button></td></tr>
+            <tr><td>Delete pod</td><td><code>kubectl delete pod &lt;name&gt;</code></td><td>Kubernetes</td><td><span class="badge badge-danger">Dangerous</span></td><td><button class="btn btn-sm" data-copy="kubectl delete pod <name>">Copy</button></td></tr>
+            <tr><td>Restart service</td><td><code>systemctl restart ocs</code></td><td>Linux</td><td><span class="badge badge-danger">Dangerous</span></td><td><button class="btn btn-sm" data-copy="systemctl restart ocs">Copy</button></td></tr>
           </tbody>
         </table>
       </section>
@@ -305,9 +333,9 @@
         <table class="table">
           <thead><tr><th>Name</th><th>Language</th><th>Tags</th><th>Updated</th><th></th></tr></thead>
           <tbody>
-            <tr><td>Extract MSISDN from CDR</td><td><span class="badge">AWK</span></td><td>cdr, awk</td><td>1 day ago</td><td><button class="btn btn-sm" data-toast="Đã copy snippet">Copy</button></td></tr>
-            <tr><td>Bulk index Elasticsearch</td><td><span class="badge">Kibana</span></td><td>elasticsearch</td><td>3 days ago</td><td><button class="btn btn-sm" data-toast="Đã copy snippet">Copy</button></td></tr>
-            <tr><td>Rolling restart deployment</td><td><span class="badge">Shell</span></td><td>k8s</td><td>1 week ago</td><td><button class="btn btn-sm" data-toast="Đã copy snippet">Copy</button></td></tr>
+            <tr><td>Extract MSISDN from CDR</td><td><span class="badge">AWK</span></td><td>cdr, awk</td><td>1 day ago</td><td><button class="btn btn-sm" data-copy="awk -F';' '{print $1}' file.dat">Copy</button></td></tr>
+            <tr><td>Bulk index Elasticsearch</td><td><span class="badge">Kibana</span></td><td>elasticsearch</td><td>3 days ago</td><td><button class="btn btn-sm" data-copy="POST _bulk">Copy</button></td></tr>
+            <tr><td>Rolling restart deployment</td><td><span class="badge">Shell</span></td><td>k8s</td><td>1 week ago</td><td><button class="btn btn-sm" data-copy="kubectl rollout restart deploy/&lt;name&gt;">Copy</button></td></tr>
           </tbody>
         </table>
       </section>
@@ -438,11 +466,20 @@
           </div>
           <div class="card">
             <div class="card-title">Backup</div>
-            <div class="list-plain">
-              <button class="btn" data-toast="Backup Now (demo)">Backup Now</button>
-              <button class="btn" data-toast="Restore (demo)">Restore</button>
-              <button class="btn" data-toast="Export (demo)">Export</button>
-              <button class="btn" data-toast="Import (demo)">Import</button>
+            <p style="color:var(--text-secondary); margin-top:0;">Toàn bộ dữ liệu nằm trong IndexedDB của trình duyệt này. Export/Backup để lưu ra file, Import để khôi phục.</p>
+            <div class="list-plain" style="flex-direction:row; flex-wrap:wrap; gap:8px;">
+              <button class="btn" id="btn-backup-now">Backup Now (.json)</button>
+              <button class="btn" id="btn-import-file">Import…</button>
+              <input type="file" id="input-import-file" accept="application/json" hidden>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Demo Data</div>
+            <p style="color:var(--text-secondary); margin-top:0;">Dữ liệu mẫu OCS/Kubernetes/Elasticsearch/Linux để làm quen với vNote.</p>
+            <div class="list-plain" style="flex-direction:row; flex-wrap:wrap; gap:8px;">
+              <button class="btn" id="btn-load-demo">Load Demo Data</button>
+              <button class="btn" id="btn-clear-demo">Clear Demo Data</button>
             </div>
           </div>
           <div class="card">
@@ -468,9 +505,9 @@
   <!-- ============ STATUS BAR ============ -->
   <footer class="statusbar">
     <span id="status-save">💾 Saved ✓</span>
-    <span>📝 Notes: 125</span>
-    <span>✅ Tasks: 8</span>
-    <span>🔤 Words: 12,450</span>
+    <span>📝 Notes: <span id="status-notes-count">–</span></span>
+    <span>✅ Tasks: <span id="status-tasks-count">–</span></span>
+    <span>🔤 Words: <span id="status-words-count">0</span></span>
     <span class="grow"></span>
     <span>Storage: Local</span>
     <span>Internet: OFFLINE-FIRST</span>
@@ -490,12 +527,7 @@
 <div class="overlay" id="overlay-search">
   <div class="modal">
     <input class="modal-input" id="search-input" placeholder="Search notes, tasks, commands, snippets… (tag:ocs, status:todo, priority:high)" autocomplete="off">
-    <div class="modal-list" id="search-results">
-      <div class="modal-item"><span>📝</span><span class="title">OCS Architecture Overview</span><span class="item-meta">Note</span></div>
-      <div class="modal-item"><span>🧰</span><span class="title">kubectl get pods -A</span><span class="item-meta">Command</span></div>
-      <div class="modal-item"><span>🐛</span><span class="title">REQUEST_TIMEOUT trên Diameter CCR</span><span class="item-meta">Troubleshooting</span></div>
-      <div class="modal-item"><span>✅</span><span class="title">Kiểm tra alarm CCR/CCA trên PCRF</span><span class="item-meta">Task</span></div>
-    </div>
+    <div class="modal-list" id="search-results"></div>
   </div>
 </div>
 
@@ -527,8 +559,64 @@
   </div>
 </div>
 
+<!-- ============ NOTE EDITOR MODAL ============ -->
+<div class="overlay" id="overlay-note-editor">
+  <div class="modal" style="max-width:720px; max-height:88vh;">
+    <div class="editor-toolbar">
+      <input class="field-input grow" id="note-title" placeholder="Note title…">
+      <select class="field-input" id="note-category"></select>
+      <select class="field-input" id="note-priority">
+        <option>Low</option><option>Medium</option><option>High</option><option>Critical</option>
+      </select>
+      <select class="field-input" id="note-status">
+        <option>Draft</option><option>Todo</option><option>In Progress</option><option>Completed</option><option>Archived</option>
+      </select>
+    </div>
+    <input class="field-input editor-tags-input" id="note-tags" placeholder="Tags (phân cách bằng dấu phẩy)">
+    <textarea class="qc-textarea editor-textarea" id="note-content" placeholder="Nội dung markdown…"></textarea>
+    <div class="modal-footer">
+      <span id="note-save-status" style="color:var(--text-muted); font-size:11.5px; align-self:center;"></span>
+      <span class="spacer" style="flex:1"></span>
+      <button class="btn" id="note-delete">Move to Trash</button>
+      <button class="btn" id="note-cancel">Close</button>
+      <button class="btn btn-primary" id="note-save">Save <kbd>Ctrl S</kbd></button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ TASK EDITOR MODAL ============ -->
+<div class="overlay" id="overlay-task-editor">
+  <div class="modal" style="max-width:560px;">
+    <div class="editor-toolbar">
+      <input class="field-input grow" id="task-title" placeholder="Task title…">
+      <select class="field-input" id="task-priority">
+        <option>Low</option><option>Medium</option><option>High</option><option>Critical</option>
+      </select>
+    </div>
+    <div class="editor-toolbar" style="border-top:none; padding-top:0;">
+      <input class="field-input" id="task-due" type="date">
+      <select class="field-input" id="task-status">
+        <option>TODO</option><option>IN PROGRESS</option><option>DONE</option><option>CANCELLED</option>
+      </select>
+      <input class="field-input grow" id="task-project" placeholder="Project">
+    </div>
+    <input class="field-input editor-tags-input" id="task-tags" placeholder="Tags (phân cách bằng dấu phẩy)">
+    <textarea class="qc-textarea" id="task-description" style="min-height:100px;" placeholder="Mô tả…"></textarea>
+    <div class="modal-footer">
+      <button class="btn" id="task-delete">Move to Trash</button>
+      <span class="spacer" style="flex:1"></span>
+      <button class="btn" id="task-cancel">Close</button>
+      <button class="btn btn-primary" id="task-save">Save</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
+<script src="js/util.js"></script>
+<script src="js/db.js"></script>
+<script src="js/notes.js"></script>
+<script src="js/tasks.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

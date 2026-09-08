@@ -11,9 +11,7 @@
   /* ---------------------------------------------------------------- */
 
   var GENERIC_VIEWS = {
-    'pinned': { icon: '📌', title: 'Pinned', desc: 'Ghi chú đã ghim để truy cập nhanh.', action: 'New Note', actionView: 'notes' },
-    'favorites': { icon: '⭐', title: 'Favorites', desc: 'Các mục bạn đã đánh dấu yêu thích.', action: 'New Note', actionView: 'notes' },
-    'daily-notes': { icon: '📅', title: 'Daily Notes', desc: 'Tự động tạo theo Daily/YYYY/MM/YYYY-MM-DD.md với template: Priority, Today\'s Work, Issues, Learning, Ideas, Completed, Tomorrow.', action: "Create Today's Note", actionView: 'daily-notes' },
+    'daily-notes': { icon: '📅', title: 'Daily Notes', desc: 'Tự động tạo theo Daily/YYYY/MM/YYYY-MM-DD.md với template: Priority, Today\'s Work, Issues, Learning, Ideas, Completed, Tomorrow.', dailyNote: true },
     'work-ocs': { icon: '💼', title: 'WORK · OCS', desc: 'Ghi chú &amp; troubleshooting thuộc nhóm OCS.', action: 'New Note', actionView: 'notes' },
     'work-kubernetes': { icon: '💼', title: 'WORK · Kubernetes', desc: 'Ghi chú &amp; troubleshooting thuộc nhóm Kubernetes.', action: 'New Note', actionView: 'notes' },
     'work-elasticsearch': { icon: '💼', title: 'WORK · Elasticsearch', desc: 'Ghi chú &amp; troubleshooting thuộc nhóm Elasticsearch.', action: 'New Note', actionView: 'notes' },
@@ -24,7 +22,6 @@
     'study': { icon: '📚', title: 'Study', desc: 'Ghi chú học tập, tách biệt với công việc.', action: 'New Note', actionView: 'notes' },
     'projects': { icon: '📁', title: 'Projects', desc: 'Nhóm task, note, command, snippet theo dự án.', action: 'New Project', actionView: 'projects' },
     'analytics': { icon: '📈', title: 'Analytics', desc: 'Thống kê hoạt động: notes, tasks, file operations theo thời gian.' },
-    'trash': { icon: '🗑️', title: 'Trash', desc: 'Mục đã xoá — có thể khôi phục hoặc xoá vĩnh viễn.', action: 'Empty Trash', actionView: 'trash' },
     'knowledge-graph': { icon: '🧠', title: 'Knowledge Graph', desc: 'Liên kết [[wiki-links]] giữa các note tự động tạo backlinks &amp; graph. Hỗ trợ Zoom, Pan, Search Node, Focus Node.', graph: true },
     'file-splitter': { icon: '✂️', title: 'File Splitter', desc: 'Split by Lines / Size / Records / Column — xử lý theo chunk, không load toàn bộ file vào RAM.', tool: true, options: ['Preserve header', 'Keep records intact'] },
     'file-analyzer': { icon: '📊', title: 'File Analyzer', desc: 'Phân tích file: encoding, line ending, delimiter, số dòng/cột, thống kê từng cột.', tool: true, options: ['Auto-detect delimiter', 'Deep column analysis'] },
@@ -38,7 +35,9 @@
     section.className = 'view';
     section.dataset.viewId = id;
 
-    var actionBtn = meta.action
+    var actionBtn = meta.dailyNote
+      ? '<button class="btn btn-primary" data-action="create-daily-note">＋ Create Today\'s Note</button>'
+      : meta.action
       ? '<button class="btn btn-primary" data-view-link="' + meta.actionView + '">＋ ' + meta.action + '</button>'
       : '';
 
@@ -115,6 +114,15 @@
 
     workspace.scrollTop = 0;
     closeMobileSidebar();
+    refreshView(viewId);
+  }
+
+  function refreshView(viewId) {
+    if (viewId === 'dashboard') refreshDashboard();
+    else if (viewId === 'notes') window.VNoteNotes.render();
+    else if (viewId === 'tasks') window.VNoteTasks.render();
+    else if (viewId === 'pinned' || viewId === 'favorites') refreshPinnedFavorites();
+    else if (viewId === 'trash') refreshTrash();
   }
 
   document.addEventListener('click', function (e) {
@@ -128,7 +136,49 @@
     if (toastEl) {
       showToast(toastEl.dataset.toast);
     }
+
+    var copyEl = e.target.closest('[data-copy]');
+    if (copyEl) {
+      copyToClipboard(copyEl.dataset.copy);
+    }
+
+    if (e.target.closest('[data-action="create-daily-note"]')) {
+      createDailyNote();
+    }
   });
+
+  function createDailyNote() {
+    var DB = window.VNoteDB;
+    var today = window.VNoteTasks.todayStr();
+    var now = new Date().toISOString();
+    DB.getAll('notes').then(function (notes) {
+      var existing = notes.find(function (n) { return n.title === 'Daily Note ' + today && !n.deleted; });
+      if (existing) { navigateTo('notes'); window.VNoteNotes.openEditor(existing.id); return; }
+      var content = '## Priority\n\n## Today\'s Work\n\n## Issues\n\n## Learning\n\n## Ideas\n\n## Completed\n\n## Tomorrow\n';
+      var note = {
+        id: DB.uid(), title: 'Daily Note ' + today, category: 'General', tags: ['daily'],
+        priority: 'Low', status: 'Draft', content: content, pinned: false, favorite: false,
+        deleted: false, createdAt: now, updatedAt: now
+      };
+      DB.put('notes', note).then(function () {
+        onDataChanged();
+        navigateTo('notes');
+        window.VNoteNotes.openEditor(note.id);
+      });
+    });
+  }
+
+  function copyToClipboard(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () {
+        showToast('Đã copy: ' + text);
+      }, function () {
+        showToast('Không thể copy (trình duyệt chặn clipboard)');
+      });
+    } else {
+      showToast('Clipboard API không khả dụng');
+    }
+  }
 
   /* ---------------------------------------------------------------- */
   /* Theme                                                             */
@@ -206,12 +256,10 @@
     if (focusEl) setTimeout(function () { focusEl.focus(); }, 0);
   }
   function closeAllOverlays() {
-    [overlaySearch, overlayPalette, overlayCapture].forEach(function (o) { o.classList.remove('open'); });
+    document.querySelectorAll('.overlay.open').forEach(function (o) { o.classList.remove('open'); });
   }
-  [overlaySearch, overlayPalette, overlayCapture].forEach(function (overlay) {
-    overlay.addEventListener('click', function (e) {
-      if (e.target === overlay) closeAllOverlays();
-    });
+  document.addEventListener('click', function (e) {
+    if (e.target.classList && e.target.classList.contains('overlay')) closeAllOverlays();
   });
 
   document.getElementById('btn-open-search').addEventListener('click', function () {
@@ -314,8 +362,53 @@
   document.getElementById('capture-save').addEventListener('click', function () {
     var text = captureTextarea.value.trim();
     closeAllOverlays();
-    if (text) showToast('Đã lưu ' + captureType + ' (demo — chưa nối IndexedDB)');
+    if (text) captureQuick(text, captureType);
   });
+
+  document.getElementById('dash-capture-save').addEventListener('click', function () {
+    var ta = document.getElementById('dash-capture-text');
+    var type = document.getElementById('dash-capture-type').value;
+    var text = ta.value.trim();
+    if (!text) return;
+    ta.value = '';
+    captureQuick(text, type);
+  });
+
+  function captureQuick(text, type) {
+    var DB = window.VNoteDB;
+    var now = new Date().toISOString();
+    var firstLine = text.split('\n')[0].slice(0, 80);
+    var promise;
+
+    if (type === 'Task') {
+      promise = DB.put('tasks', {
+        id: DB.uid(), title: firstLine, description: text, priority: 'Medium',
+        dueDate: window.VNoteTasks.todayStr(), status: 'TODO', project: '', tags: ['quick-capture'],
+        deleted: false, createdAt: now, updatedAt: now
+      });
+    } else if (type === 'Command') {
+      promise = DB.put('commands', {
+        id: DB.uid(), name: firstLine, command: text, description: '', category: 'Other',
+        tags: ['quick-capture'], danger: 'Safe', createdAt: now
+      });
+    } else if (type === 'Issue') {
+      promise = DB.put('troubleshooting', {
+        id: DB.uid(), title: firstLine, system: '', component: '', environment: '', severity: 'MEDIUM',
+        symptoms: text, status: 'OPEN', createdAt: now
+      });
+    } else {
+      promise = DB.put('notes', {
+        id: DB.uid(), title: firstLine || 'Untitled', category: type === 'Idea' ? 'Other' : 'General',
+        tags: [type.toLowerCase()], priority: 'Medium', status: 'Draft', content: text,
+        pinned: false, favorite: false, deleted: false, createdAt: now, updatedAt: now
+      });
+    }
+
+    promise.then(function () {
+      showToast('Đã lưu ' + type);
+      onDataChanged();
+    });
+  }
 
   /* ---------------------------------------------------------------- */
   /* Keyboard shortcuts                                                */
@@ -362,6 +455,239 @@
     if (e.key === 'Escape') {
       closeAllOverlays();
     }
+  });
+
+  /* ---------------------------------------------------------------- */
+  /* Dashboard / Pinned / Favorites / Trash — live data                */
+  /* ---------------------------------------------------------------- */
+
+  function listRow(title, meta, badgeHtml) {
+    return '<li class="list-row"><span class="dot"></span><span class="title">' + window.VNoteUtil.escapeHtml(title) + '</span>' +
+      (badgeHtml || (meta ? '<span class="meta">' + window.VNoteUtil.escapeHtml(meta) + '</span>' : '')) + '</li>';
+  }
+
+  function refreshDashboard() {
+    var U = window.VNoteUtil;
+    Promise.all([window.VNoteNotes.getAllActive(), window.VNoteTasks.getAllActive()]).then(function (res) {
+      var notes = res[0], tasks = res[1];
+      var today = window.VNoteTasks.todayStr();
+
+      var completed = tasks.filter(function (t) { return t.status === 'DONE'; });
+      var todayTasks = tasks.filter(function (t) { return t.dueDate === today; });
+      var overdue = tasks.filter(function (t) { return t.status !== 'DONE' && t.status !== 'CANCELLED' && t.dueDate && t.dueDate < today; });
+      var pinned = notes.filter(function (n) { return n.pinned; });
+      var favorites = notes.filter(function (n) { return n.favorite; });
+      var recentNotes = notes.slice().sort(function (a, b) { return (b.updatedAt || '').localeCompare(a.updatedAt || ''); }).slice(0, 5);
+
+      setText('stat-tasks', tasks.length);
+      setText('stat-completed', completed.length);
+      setText('stat-notes', notes.length);
+
+      setHtml('widget-today-tasks', todayTasks.length ? todayTasks.slice(0, 5).map(function (t) {
+        return listRow(t.title, null, '<span class="badge ' + (t.priority === 'High' || t.priority === 'Critical' ? 'badge-danger' : t.priority === 'Medium' ? 'badge-warning' : 'badge') + '">' + t.priority + '</span>');
+      }).join('') : '<li class="modal-empty" style="padding:8px 0;">Không có task nào hôm nay</li>');
+
+      setHtml('widget-recent-notes', recentNotes.length ? recentNotes.map(function (n) {
+        return listRow(n.title, U.relativeTime(n.updatedAt));
+      }).join('') : '<li class="modal-empty" style="padding:8px 0;">Chưa có note</li>');
+
+      setHtml('widget-pinned-notes', pinned.length ? pinned.slice(0, 5).map(function (n) { return listRow(n.title); }).join('') : '<li class="modal-empty" style="padding:8px 0;">Chưa ghim note nào</li>');
+      setHtml('widget-favorite-notes', favorites.length ? favorites.slice(0, 5).map(function (n) { return listRow(n.title); }).join('') : '<li class="modal-empty" style="padding:8px 0;">Chưa có favorite</li>');
+      setHtml('widget-overdue-tasks', overdue.length ? overdue.slice(0, 5).map(function (t) {
+        return listRow(t.title, null, '<span class="badge badge-danger">' + t.dueDate + '</span>');
+      }).join('') : '<li class="modal-empty" style="padding:8px 0;">Không có task quá hạn 🎉</li>');
+
+      setText('status-notes-count', notes.length);
+      setText('status-tasks-count', tasks.length);
+      var words = notes.reduce(function (sum, n) { return sum + (n.content ? n.content.trim().split(/\s+/).filter(Boolean).length : 0); }, 0);
+      setText('status-words-count', words.toLocaleString('vi-VN'));
+    });
+  }
+
+  function refreshPinnedFavorites() {
+    window.VNoteNotes.getAllActive().then(function (notes) {
+      renderNoteTable('pinned-tbody', 'pinned-empty', notes.filter(function (n) { return n.pinned; }));
+      renderNoteTable('favorites-tbody', 'favorites-empty', notes.filter(function (n) { return n.favorite; }));
+    });
+  }
+
+  function renderNoteTable(tbodyId, emptyId, rows) {
+    var U = window.VNoteUtil;
+    var body = document.getElementById(tbodyId);
+    var empty = document.getElementById(emptyId);
+    if (!body) return;
+    if (!rows.length) {
+      body.innerHTML = '';
+      if (empty) empty.hidden = false;
+      return;
+    }
+    if (empty) empty.hidden = true;
+    body.innerHTML = rows.map(function (n) {
+      return '<tr><td><a class="note-open-generic" data-id="' + n.id + '">' + U.escapeHtml(n.title) + '</a></td>' +
+        '<td>' + U.escapeHtml(n.category || '') + '</td>' +
+        '<td><span class="badge">' + U.escapeHtml(n.status || '') + '</span></td>' +
+        '<td>' + U.relativeTime(n.updatedAt) + '</td></tr>';
+    }).join('');
+    body.querySelectorAll('.note-open-generic').forEach(function (el) {
+      el.addEventListener('click', function () { window.VNoteNotes.openEditor(el.dataset.id); });
+    });
+  }
+
+  function refreshTrash() {
+    var U = window.VNoteUtil;
+    Promise.all([window.VNoteDB.getAll('notes'), window.VNoteDB.getAll('tasks')]).then(function (res) {
+      var deletedNotes = res[0].filter(function (n) { return n.deleted; }).map(function (n) { return Object.assign({ type: 'Note' }, n); });
+      var deletedTasks = res[1].filter(function (t) { return t.deleted; }).map(function (t) { return Object.assign({ type: 'Task' }, t); });
+      var rows = deletedNotes.concat(deletedTasks).sort(function (a, b) { return (b.deletedAt || '').localeCompare(a.deletedAt || ''); });
+      var body = document.getElementById('trash-tbody');
+      var empty = document.getElementById('trash-empty');
+      if (!rows.length) {
+        body.innerHTML = '';
+        empty.hidden = false;
+        return;
+      }
+      empty.hidden = true;
+      body.innerHTML = rows.map(function (r) {
+        return '<tr><td>' + U.escapeHtml(r.title) + '</td><td>' + r.type + '</td><td>' + U.relativeTime(r.deletedAt) + '</td>' +
+          '<td><button class="btn btn-sm" data-restore="' + r.id + '" data-type="' + r.type + '">Restore</button> ' +
+          '<button class="btn btn-sm" data-purge="' + r.id + '" data-type="' + r.type + '">Delete forever</button></td></tr>';
+      }).join('');
+      body.querySelectorAll('[data-restore]').forEach(function (el) {
+        el.addEventListener('click', function () {
+          var fn = el.dataset.type === 'Note' ? window.VNoteNotes.restore : window.VNoteTasks.restore;
+          fn(el.dataset.restore).then(refreshTrash);
+        });
+      });
+      body.querySelectorAll('[data-purge]').forEach(function (el) {
+        el.addEventListener('click', function () {
+          var fn = el.dataset.type === 'Note' ? window.VNoteNotes.permanentDelete : window.VNoteTasks.permanentDelete;
+          fn(el.dataset.purge).then(refreshTrash);
+        });
+      });
+    });
+  }
+
+  document.getElementById('btn-empty-trash').addEventListener('click', function () {
+    Promise.all([window.VNoteDB.getAll('notes'), window.VNoteDB.getAll('tasks')]).then(function (res) {
+      var notes = res[0].filter(function (n) { return n.deleted; });
+      var tasks = res[1].filter(function (t) { return t.deleted; });
+      return Promise.all(
+        notes.map(function (n) { return window.VNoteNotes.permanentDelete(n.id); })
+          .concat(tasks.map(function (t) { return window.VNoteTasks.permanentDelete(t.id); }))
+      );
+    }).then(function () {
+      showToast('Đã dọn Trash');
+      refreshTrash();
+    });
+  });
+
+  function setText(id, value) { var el = document.getElementById(id); if (el) el.textContent = value; }
+  function setHtml(id, html) { var el = document.getElementById(id); if (el) el.innerHTML = html; }
+
+  function onDataChanged() {
+    refreshDashboard();
+    var activeView = document.querySelector('.view.active');
+    if (activeView) refreshView(activeView.dataset.viewId);
+  }
+  window.VNoteApp = { onDataChanged: onDataChanged };
+
+  /* ---------------------------------------------------------------- */
+  /* Global search — live data                                        */
+  /* ---------------------------------------------------------------- */
+
+  function runSearch(query) {
+    var resultsEl = document.getElementById('search-results');
+    var q = query.trim().toLowerCase();
+    Promise.all([window.VNoteNotes.getAllActive(), window.VNoteTasks.getAllActive()]).then(function (res) {
+      var notes = res[0].map(function (n) { return { icon: '📝', title: n.title, meta: 'Note', open: function () { window.VNoteNotes.openEditor(n.id); } }; });
+      var tasks = res[1].map(function (t) { return { icon: '✅', title: t.title, meta: 'Task', open: function () { window.VNoteTasks.openEditor(t.id); } }; });
+      var all = notes.concat(tasks);
+      var filtered = q ? all.filter(function (i) { return i.title.toLowerCase().indexOf(q) !== -1; }) : all.slice(0, 8);
+
+      if (!filtered.length) {
+        resultsEl.innerHTML = '<div class="modal-empty">Không tìm thấy kết quả</div>';
+        return;
+      }
+      resultsEl.innerHTML = filtered.slice(0, 20).map(function (item, i) {
+        return '<div class="modal-item" data-idx="' + i + '"><span>' + item.icon + '</span><span class="title">' +
+          window.VNoteUtil.escapeHtml(item.title) + '</span><span class="item-meta">' + item.meta + '</span></div>';
+      }).join('');
+      resultsEl.querySelectorAll('.modal-item').forEach(function (el, i) {
+        el.addEventListener('click', function () { closeAllOverlays(); filtered[i].open(); });
+      });
+    });
+  }
+
+  document.getElementById('search-input').addEventListener('input', window.VNoteUtil.debounce(function (e) {
+    runSearch(e.target.value);
+  }, 120));
+
+  document.getElementById('btn-open-search').addEventListener('click', function () { runSearch(''); });
+  document.getElementById('mn-search').addEventListener('click', function () { runSearch(''); });
+
+  /* ---------------------------------------------------------------- */
+  /* Settings — export / import / demo data                            */
+  /* ---------------------------------------------------------------- */
+
+  document.getElementById('btn-backup-now').addEventListener('click', function () {
+    window.VNoteDB.exportAll().then(function (dump) {
+      var stamp = new Date().toISOString().replace(/[:T]/g, '-').slice(0, 19);
+      window.VNoteUtil.downloadText('vnote_backup_' + stamp + '.json', JSON.stringify(dump, null, 2));
+      showToast('Đã tạo file backup');
+    });
+  });
+
+  document.getElementById('btn-import-file').addEventListener('click', function () {
+    document.getElementById('input-import-file').click();
+  });
+
+  document.getElementById('input-import-file').addEventListener('change', function (e) {
+    var file = e.target.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function () {
+      try {
+        var dump = JSON.parse(reader.result);
+        window.VNoteDB.importAll(dump).then(function () {
+          showToast('Đã import dữ liệu');
+          onDataChanged();
+        });
+      } catch (err) {
+        showToast('File không hợp lệ');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  });
+
+  document.getElementById('btn-load-demo').addEventListener('click', function () {
+    Promise.all([
+      window.VNoteDB.getAll('notes').then(function (r) { return r.length === 0 && window.VNoteNotes.seedIfEmpty(); }),
+      window.VNoteDB.getAll('tasks').then(function (r) { return r.length === 0 && window.VNoteTasks.seedIfEmpty(); })
+    ]).then(function () {
+      showToast('Đã nạp demo data');
+      onDataChanged();
+    });
+  });
+
+  document.getElementById('btn-clear-demo').addEventListener('click', function () {
+    Promise.all([window.VNoteNotes.clearAll(), window.VNoteTasks.clearAll()]).then(function () {
+      showToast('Đã xoá toàn bộ dữ liệu');
+      onDataChanged();
+    });
+  });
+
+  /* ---------------------------------------------------------------- */
+  /* Boot                                                              */
+  /* ---------------------------------------------------------------- */
+
+  window.VNoteNotes.bindOnce();
+  window.VNoteTasks.bindOnce();
+
+  window.VNoteDB.open().then(function () {
+    return Promise.all([window.VNoteNotes.seedIfEmpty(), window.VNoteTasks.seedIfEmpty()]);
+  }).then(function () {
+    refreshDashboard();
   });
 
 })();

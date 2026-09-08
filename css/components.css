@@ -398,6 +398,39 @@ kbd {
   background: var(--bg-secondary);
 }
 
+.editor-toolbar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.field-input {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 6px 8px;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.field-input.grow {
+  flex: 1;
+  min-width: 180px;
+}
+
+.editor-tags-input {
+  display: block;
+  width: calc(100% - 32px);
+  margin: 10px 16px;
+}
+
+.editor-textarea {
+  min-height: 280px;
+  font-family: var(--font-mono);
+  border-radius: 0;
+}
+
 .qc-textarea {
   width: 100%;
   min-height: 110px;
