@@ -20,7 +20,6 @@
     'work-cdr': { icon: '💼', title: 'WORK · CDR', desc: 'Ghi chú &amp; troubleshooting thuộc nhóm CDR.', action: 'New Note', actionView: 'notes' },
     'work-other': { icon: '💼', title: 'WORK · Other', desc: 'Các ghi chú công việc khác.', action: 'New Note', actionView: 'notes' },
     'study': { icon: '📚', title: 'Study', desc: 'Ghi chú học tập, tách biệt với công việc.', action: 'New Note', actionView: 'notes' },
-    'projects': { icon: '📁', title: 'Projects', desc: 'Nhóm task, note, command, snippet theo dự án.', action: 'New Project', actionView: 'projects' },
     'analytics': { icon: '📈', title: 'Analytics', desc: 'Thống kê hoạt động: notes, tasks, file operations theo thời gian.' },
     'knowledge-graph': { icon: '🧠', title: 'Knowledge Graph', desc: 'Liên kết [[wiki-links]] giữa các note tự động tạo backlinks &amp; graph. Hỗ trợ Zoom, Pan, Search Node, Focus Node.', graph: true },
     'file-splitter': { icon: '✂️', title: 'File Splitter', desc: 'Split by Lines / Size / Records / Column — xử lý theo chunk, không load toàn bộ file vào RAM.', tool: true, options: ['Preserve header', 'Keep records intact'] },
@@ -123,6 +122,11 @@
     else if (viewId === 'tasks') window.VNoteTasks.render();
     else if (viewId === 'pinned' || viewId === 'favorites') refreshPinnedFavorites();
     else if (viewId === 'trash') refreshTrash();
+    else if (viewId === 'command-center') window.VNoteCommands.render();
+    else if (viewId === 'snippets') window.VNoteSnippets.render();
+    else if (viewId === 'troubleshooting') window.VNoteTroubleshooting.render();
+    else if (viewId === 'flashcards') window.VNoteFlashcards.render();
+    else if (viewId === 'projects') window.VNoteProjects.render();
   }
 
   document.addEventListener('click', function (e) {
@@ -662,8 +666,9 @@
 
   document.getElementById('btn-load-demo').addEventListener('click', function () {
     Promise.all([
-      window.VNoteDB.getAll('notes').then(function (r) { return r.length === 0 && window.VNoteNotes.seedIfEmpty(); }),
-      window.VNoteDB.getAll('tasks').then(function (r) { return r.length === 0 && window.VNoteTasks.seedIfEmpty(); })
+      window.VNoteNotes.seedIfEmpty(), window.VNoteTasks.seedIfEmpty(), window.VNoteProjects.seedIfEmpty(),
+      window.VNoteCommands.seedIfEmpty(), window.VNoteSnippets.seedIfEmpty(), window.VNoteTroubleshooting.seedIfEmpty(),
+      window.VNoteFlashcards.seedIfEmpty()
     ]).then(function () {
       showToast('Đã nạp demo data');
       onDataChanged();
@@ -671,11 +676,45 @@
   });
 
   document.getElementById('btn-clear-demo').addEventListener('click', function () {
-    Promise.all([window.VNoteNotes.clearAll(), window.VNoteTasks.clearAll()]).then(function () {
+    Promise.all([
+      window.VNoteNotes.clearAll(), window.VNoteTasks.clearAll(), window.VNoteProjects.clearAll(),
+      window.VNoteCommands.clearAll(), window.VNoteSnippets.clearAll(), window.VNoteTroubleshooting.clearAll(),
+      window.VNoteFlashcards.clearAll()
+    ]).then(function () {
       showToast('Đã xoá toàn bộ dữ liệu');
       onDataChanged();
     });
   });
+
+  /* ---------------------------------------------------------------- */
+  /* Confirm dialog — used before copying a dangerous command          */
+  /* ---------------------------------------------------------------- */
+
+  function showConfirm(message) {
+    var overlay = document.getElementById('overlay-confirm');
+    var msgEl = document.getElementById('confirm-message');
+    msgEl.textContent = message;
+    openOverlay(overlay);
+    return new Promise(function (resolve) {
+      function onYes() { cleanup(); resolve(true); }
+      function onNo() { cleanup(); resolve(false); }
+      function cleanup() {
+        closeAllOverlays();
+        document.getElementById('confirm-yes').removeEventListener('click', onYes);
+        document.getElementById('confirm-no').removeEventListener('click', onNo);
+      }
+      document.getElementById('confirm-yes').addEventListener('click', onYes);
+      document.getElementById('confirm-no').addEventListener('click', onNo);
+    });
+  }
+
+  function confirmAndCopy(text, isDangerous) {
+    if (!isDangerous) { copyToClipboard(text); return; }
+    showConfirm('Đây là lệnh có thể gây nguy hiểm:\n\n' + text + '\n\nBạn có chắc muốn copy?').then(function (ok) {
+      if (ok) copyToClipboard(text);
+    });
+  }
+  window.VNoteApp.confirmAndCopy = confirmAndCopy;
 
   /* ---------------------------------------------------------------- */
   /* Boot                                                              */
@@ -683,9 +722,22 @@
 
   window.VNoteNotes.bindOnce();
   window.VNoteTasks.bindOnce();
+  window.VNoteProjects.bindOnce();
+  window.VNoteCommands.bindOnce();
+  window.VNoteSnippets.bindOnce();
+  window.VNoteTroubleshooting.bindOnce();
+  window.VNoteFlashcards.bindOnce();
 
   window.VNoteDB.open().then(function () {
-    return Promise.all([window.VNoteNotes.seedIfEmpty(), window.VNoteTasks.seedIfEmpty()]);
+    return Promise.all([
+      window.VNoteNotes.seedIfEmpty(),
+      window.VNoteTasks.seedIfEmpty(),
+      window.VNoteProjects.seedIfEmpty(),
+      window.VNoteCommands.seedIfEmpty(),
+      window.VNoteSnippets.seedIfEmpty(),
+      window.VNoteTroubleshooting.seedIfEmpty(),
+      window.VNoteFlashcards.seedIfEmpty()
+    ]);
   }).then(function () {
     refreshDashboard();
   });
