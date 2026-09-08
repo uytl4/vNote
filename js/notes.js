@@ -178,13 +178,73 @@ window.VNoteNotes = (function () {
         record.createdAt = existing.createdAt || now;
       }
       saveStatusEl.textContent = 'Saving...';
-      return DB.put(STORE, record);
+      var versionSave = (existing && (existing.title !== record.title || existing.content !== record.content))
+        ? DB.put('note_versions', { id: DB.uid(), noteId: existing.id, title: existing.title, content: existing.content, savedAt: existing.updatedAt || now })
+        : Promise.resolve();
+      return versionSave.then(function () { return DB.put(STORE, record); });
     }).then(function () {
       saveStatusEl.textContent = 'Saved ✓';
       state.editingId = record.id;
       return render();
     }).then(function () {
       if (window.VNoteApp) window.VNoteApp.onDataChanged();
+    });
+  }
+
+  function getVersions(noteId) {
+    return DB.getAll('note_versions').then(function (rows) {
+      return rows.filter(function (v) { return v.noteId === noteId; }).sort(function (a, b) { return (b.savedAt || '').localeCompare(a.savedAt || ''); });
+    });
+  }
+
+  function openHistory() {
+    if (!state.editingId) return;
+    var overlay = document.getElementById('overlay-note-history');
+    var list = document.getElementById('note-history-list');
+    getVersions(state.editingId).then(function (versions) {
+      if (!versions.length) {
+        list.innerHTML = '<div class="modal-empty">Chưa có version cũ nào — version mới được lưu mỗi khi bạn Save một thay đổi.</div>';
+      } else {
+        list.innerHTML = versions.map(function (v, i) {
+          return '<div class="modal-item" style="cursor:default;"><span>🕓</span>' +
+            '<span class="title">' + U.escapeHtml(v.title) + '</span>' +
+            '<span class="item-meta">' + U.formatDate(v.savedAt) + '</span>' +
+            '<button class="btn btn-sm" data-view-version="' + i + '" style="margin-left:8px;">View</button>' +
+            '<button class="btn btn-sm" data-restore-version="' + i + '">Restore</button>' +
+            '<button class="btn btn-sm" data-duplicate-version="' + i + '">Duplicate</button></div>';
+        }).join('');
+        list.querySelectorAll('[data-view-version]').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            var v = versions[Number(btn.dataset.viewVersion)];
+            alert(v.title + '\n\n' + v.content);
+          });
+        });
+        list.querySelectorAll('[data-restore-version]').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            var v = versions[Number(btn.dataset.restoreVersion)];
+            titleInput.value = v.title;
+            contentInput.value = v.content;
+            overlay.classList.remove('open');
+            save();
+          });
+        });
+        list.querySelectorAll('[data-duplicate-version]').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            var v = versions[Number(btn.dataset.duplicateVersion)];
+            var now = new Date().toISOString();
+            DB.put(STORE, {
+              id: DB.uid(), title: v.title + ' (from history)', category: 'General', tags: [], priority: 'Low',
+              status: 'Draft', content: v.content, pinned: false, favorite: false, deleted: false, createdAt: now, updatedAt: now
+            }).then(function () {
+              overlay.classList.remove('open');
+              render();
+              if (window.VNoteApp) window.VNoteApp.onDataChanged();
+              if (window.VNoteApp) window.VNoteApp.showToast('Đã tạo note mới từ version cũ');
+            });
+          });
+        });
+      }
+      overlay.classList.add('open');
     });
   }
 
@@ -270,6 +330,10 @@ window.VNoteNotes = (function () {
     document.getElementById('btn-new-note').addEventListener('click', function () { openEditor(null); });
     document.getElementById('note-cancel').addEventListener('click', closeEditor);
     document.getElementById('note-save').addEventListener('click', save);
+    document.getElementById('note-history-btn').addEventListener('click', openHistory);
+    document.getElementById('note-history-close').addEventListener('click', function () {
+      document.getElementById('overlay-note-history').classList.remove('open');
+    });
     document.getElementById('note-delete').addEventListener('click', function () {
       if (state.editingId) softDelete(state.editingId).then(function () { closeEditor(); render(); });
       else closeEditor();

@@ -654,6 +654,26 @@
     });
   });
 
+  document.getElementById('btn-backup-zip').addEventListener('click', function () {
+    Promise.all([window.VNoteDB.exportAll(), window.VNoteNotes.getAllActive()]).then(function (res) {
+      var dump = res[0], notes = res[1];
+      var encoder = new TextEncoder();
+      var entries = [{ name: 'data.json', data: encoder.encode(JSON.stringify(dump, null, 2)) }];
+      notes.forEach(function (n, i) {
+        var safeName = (n.title || 'untitled').replace(/[\\/:*?"<>|]/g, '_').slice(0, 80);
+        var frontmatter = '---\ntitle: ' + n.title + '\ncategory: ' + (n.category || '') + '\ntags: ' + (n.tags || []).join(', ') + '\nstatus: ' + (n.status || '') + '\n---\n\n';
+        entries.push({ name: 'notes/' + safeName + '_' + i + '.md', data: encoder.encode(frontmatter + (n.content || '')) });
+      });
+      var blob = window.VNoteZip.createZip(entries);
+      var stamp = new Date().toISOString().replace(/[:T]/g, '-').slice(0, 19);
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a'); a.href = url; a.download = 'vnote_backup_' + stamp + '.zip';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+      showToast('Đã tạo backup ZIP (data.json + notes/*.md)');
+    });
+  });
+
   document.getElementById('btn-import-file').addEventListener('click', function () {
     document.getElementById('input-import-file').click();
   });
@@ -661,19 +681,32 @@
   document.getElementById('input-import-file').addEventListener('change', function (e) {
     var file = e.target.files[0];
     if (!file) return;
-    var reader = new FileReader();
-    reader.onload = function () {
-      try {
-        var dump = JSON.parse(reader.result);
-        window.VNoteDB.importAll(dump).then(function () {
-          showToast('Đã import dữ liệu');
-          onDataChanged();
-        });
-      } catch (err) {
-        showToast('File không hợp lệ');
-      }
-    };
-    reader.readAsText(file);
+
+    if (/\.zip$/i.test(file.name)) {
+      file.arrayBuffer().then(function (buf) {
+        var entries = window.VNoteZip.listZipEntries(buf);
+        var dataEntry = entries && entries.find(function (en) { return en.name === 'data.json'; });
+        if (!dataEntry) { showToast('Không tìm thấy data.json trong file ZIP'); return; }
+        var bytes = window.VNoteZip.extractStoredEntry(buf, dataEntry);
+        if (!bytes) { showToast('data.json trong ZIP bị nén — không thể đọc'); return; }
+        var dump = JSON.parse(new TextDecoder('utf-8').decode(bytes));
+        window.VNoteDB.importAll(dump).then(function () { showToast('Đã import dữ liệu từ ZIP'); onDataChanged(); });
+      });
+    } else {
+      var reader = new FileReader();
+      reader.onload = function () {
+        try {
+          var dump = JSON.parse(reader.result);
+          window.VNoteDB.importAll(dump).then(function () {
+            showToast('Đã import dữ liệu');
+            onDataChanged();
+          });
+        } catch (err) {
+          showToast('File không hợp lệ');
+        }
+      };
+      reader.readAsText(file);
+    }
     e.target.value = '';
   });
 

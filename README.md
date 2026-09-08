@@ -65,10 +65,15 @@ All six tools under 📂 FILE TOOLS are real, working implementations — not mo
 - The Note editor now shows a live **Backlinks** panel: every other note whose content links to the one you're editing, each clickable.
 - WORK · OCS/Kubernetes/Elasticsearch/Linux/Telecom/CDR/Other and Study (previously static placeholders) now list the real notes filed under that category.
 
+**Phase 6 — Version History, ZIP/Markdown backup**
+
+- **Version History**: every time a note's title or content changes, the previous version is saved to a new `note_versions` IndexedDB store before the new one is written. The editor's "🕓 History" button lists all past versions with View / Restore / Duplicate.
+- **Settings → Backup → Full Backup (.zip)**: exports a ZIP (via the same dependency-free writer used by File Splitter) containing `data.json` (the full store dump) plus one `.md` file per active note under `notes/` (with a small YAML-style frontmatter block) — satisfying the spec's JSON + Markdown + ZIP export formats in one file.
+- **Import** now accepts either a `.json` backup or a `.zip` full backup (it reads `data.json` back out of the ZIP's central directory); round-tripped and verified to restore every note after a Clear Demo Data.
+
 **Not implemented yet**
 
 - Data Cleaner's "Filter" (conditional row filtering by expression) from spec section 35.
-- Backup/Export as ZIP or Markdown (JSON backup only for now), Note Version History.
 - True Web Worker offload for File Tools (see the simplification note above).
 
 ## Structure
