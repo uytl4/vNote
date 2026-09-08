@@ -3,7 +3,7 @@ window.VNoteDB = (function () {
 
   var DB_NAME = 'vnote-ultra';
   var DB_VERSION = 3;
-  var RECORD_STORES = ['notes', 'tasks', 'projects', 'commands', 'snippets', 'troubleshooting', 'flashcards', 'tags', 'history', 'note_versions', 'work_categories'];
+  var RECORD_STORES = ['notes', 'tasks', 'projects', 'commands', 'snippets', 'troubleshooting', 'tags', 'note_versions', 'work_categories'];
 
   var dbPromise = null;
 

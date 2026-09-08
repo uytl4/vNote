@@ -331,19 +331,3 @@ a {
 .statusbar .status-progress {
   display: none;
 }
-
-/* ---------- Focus mode ---------- */
-
-#app.focus-mode .topbar,
-#app.focus-mode .sidebar,
-#app.focus-mode .statusbar {
-  display: none;
-}
-
-#app.focus-mode #app {
-  grid-template-rows: 1fr;
-}
-
-#app.focus-mode .layout {
-  grid-template-columns: 1fr;
-}

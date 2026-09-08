@@ -125,11 +125,9 @@ window.VNoteNotes = (function () {
         updatePinFavoriteButtons();
         overlay.classList.add('open');
         titleInput.focus();
-        renderBacklinks(note);
         switchTab('edit');
       });
     } else {
-      document.getElementById('note-backlinks').hidden = true;
       titleInput.value = '';
       categorySelect.value = presetCategory || 'General';
       tagsInput.value = '';
@@ -241,22 +239,6 @@ window.VNoteNotes = (function () {
   function closeEditor() {
     overlay.classList.remove('open');
     state.editingId = null;
-  }
-
-  function renderBacklinks(note) {
-    var el = document.getElementById('note-backlinks');
-    if (!window.VNoteGraph) { el.hidden = true; return; }
-    getAllActive().then(function (all) {
-      var backlinks = window.VNoteGraph.getBacklinks(note.title, all).filter(function (n) { return n.id !== note.id; });
-      if (!backlinks.length) { el.hidden = true; return; }
-      el.hidden = false;
-      el.innerHTML = '<strong>Backlinks (' + backlinks.length + '):</strong> ' + backlinks.map(function (n) {
-        return '<a class="backlink-open" data-id="' + n.id + '" style="color:var(--accent); cursor:pointer; margin-right:10px;">' + U.escapeHtml(n.title) + '</a>';
-      }).join('');
-      el.querySelectorAll('.backlink-open').forEach(function (a) {
-        a.addEventListener('click', function () { openEditor(a.dataset.id); });
-      });
-    });
   }
 
   function save() {

@@ -5,15 +5,15 @@
 <script>
   (function () {
     try {
-      var t = localStorage.getItem('vnote-theme') || 'dark';
+      var t = localStorage.getItem('vnote-theme') || 'light';
       document.documentElement.setAttribute('data-theme', t);
     } catch (e) {
-      document.documentElement.setAttribute('data-theme', 'dark');
+      document.documentElement.setAttribute('data-theme', 'light');
     }
   })();
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>vNote Ultra Web</title>
+<title>vNote</title>
 <link rel="stylesheet" href="css/app.css">
 <link rel="stylesheet" href="css/components.css">
 <link rel="stylesheet" href="css/dark.css">
@@ -27,8 +27,8 @@
     <button class="icon-btn" id="btn-sidebar-toggle" title="Toggle sidebar">☰</button>
     <div class="topbar-brand">
       <span class="logo">🗒️</span>
-      <span>vNote Ultra</span>
-      <span class="subtitle">Personal Knowledge, Work &amp; File Operations Center</span>
+      <span>vNote</span>
+      <span class="subtitle">Personal Knowledge &amp; Work Center</span>
     </div>
 
     <div class="topbar-search" id="btn-open-search">
@@ -40,7 +40,6 @@
     <div class="topbar-actions">
       <button class="icon-btn" id="btn-quick-capture" title="Quick Capture (Ctrl+Shift+N)">＋</button>
       <button class="icon-btn" id="btn-command-palette" title="Command Palette (Ctrl+Shift+P)">⌘</button>
-      <button class="icon-btn" id="btn-focus-mode" title="Focus Mode (Ctrl+Shift+F)">▭</button>
       <button class="icon-btn" id="btn-theme-toggle" title="Toggle theme">🌙</button>
       <button class="icon-btn" title="Settings" data-view-link="settings">⚙️</button>
     </div>
@@ -78,18 +77,6 @@
         <a class="nav-item" data-view="command-center"><span class="nav-icon">🧰</span><span class="nav-label">Command Center</span></a>
         <a class="nav-item" data-view="snippets"><span class="nav-icon">🧩</span><span class="nav-label">Snippets</span></a>
         <a class="nav-item" data-view="troubleshooting"><span class="nav-icon">🐛</span><span class="nav-label">Troubleshooting</span></a>
-        <a class="nav-item" data-view="flashcards"><span class="nav-icon">🎴</span><span class="nav-label">Flashcards</span></a>
-        <a class="nav-item" data-view="knowledge-graph"><span class="nav-icon">🧠</span><span class="nav-label">Knowledge Graph</span></a>
-
-        <details class="nav-group" open>
-          <summary><span class="nav-icon">📂</span><span class="label">FILE TOOLS</span><span class="chevron">▸</span></summary>
-          <a class="nav-item nav-item--sub" data-view="file-compare">🔍 File Compare</a>
-          <a class="nav-item nav-item--sub" data-view="file-splitter">✂️ File Splitter</a>
-          <a class="nav-item nav-item--sub" data-view="file-analyzer">📊 File Analyzer</a>
-          <a class="nav-item nav-item--sub" data-view="file-converter">🔄 File Converter</a>
-          <a class="nav-item nav-item--sub" data-view="file-viewer">👁️ File Viewer</a>
-          <a class="nav-item nav-item--sub" data-view="data-cleaner">🧹 Data Cleaner</a>
-        </details>
 
         <div class="nav-divider"></div>
 
@@ -117,7 +104,6 @@
           <div class="stat-card"><div class="stat-value" id="stat-completed">–</div><div class="stat-label">Completed</div></div>
           <div class="stat-card"><div class="stat-value" id="stat-notes">–</div><div class="stat-label">Notes</div></div>
           <div class="stat-card"><div class="stat-value" id="stat-troubleshooting">2</div><div class="stat-label">Troubleshooting</div></div>
-          <div class="stat-card"><div class="stat-value" id="stat-files">15</div><div class="stat-label">Files processed</div></div>
         </div>
 
         <div class="widget-grid">
@@ -129,15 +115,6 @@
           <div class="card">
             <div class="card-title">Recent Notes <span class="link" data-view-link="notes">View all</span></div>
             <ul class="list-plain" id="widget-recent-notes"></ul>
-          </div>
-
-          <div class="card">
-            <div class="card-title">Recent Files <span class="link" data-view-link="file-viewer">View all</span></div>
-            <ul class="list-plain">
-              <li class="list-row"><span class="dot"></span><span class="title">cdr_20260908.dat</span><span class="meta">128 MB</span></li>
-              <li class="list-row"><span class="dot"></span><span class="title">es_slowlog.log</span><span class="meta">42 MB</span></li>
-              <li class="list-row"><span class="dot"></span><span class="title">file_A.dat vs file_B.dat</span><span class="meta">Compared</span></li>
-            </ul>
           </div>
 
           <div class="card">
@@ -161,19 +138,6 @@
               <li class="list-row"><span class="dot"></span><span class="title">kubectl get pods -A</span><span class="meta">Kubernetes</span></li>
               <li class="list-row"><span class="dot"></span><span class="title">journalctl -u ocs -f</span><span class="meta">Linux</span></li>
             </ul>
-          </div>
-
-          <div class="card">
-            <div class="card-title">Recently Compared Files <span class="link" data-view-link="file-compare">View all</span></div>
-            <ul class="list-plain">
-              <li class="list-row"><span class="dot"></span><span class="title">file_A.dat ↔ file_B.dat</span><span class="meta">Modified: 573</span></li>
-            </ul>
-          </div>
-
-          <div class="card">
-            <div class="card-title">Study Progress <span class="link" data-view-link="flashcards">View all</span></div>
-            <div class="progress-bar"><div class="fill" style="width:64%"></div></div>
-            <p style="color:var(--text-secondary); margin:8px 0 0;">32 / 50 cards reviewed today</p>
           </div>
 
           <div class="card quick-capture-widget">
@@ -275,14 +239,8 @@
 
       <!-- Analytics -->
       <section class="view" data-view-id="analytics">
-        <div class="view-header"><div><h1>📈 Analytics</h1><p>Thống kê hoạt động &amp; File Process History</p></div></div>
-        <div class="stat-row" id="analytics-stats" style="grid-template-columns: repeat(6, 1fr);"></div>
-        <h3 style="margin:20px 0 10px;">File Process History</h3>
-        <table class="table">
-          <thead><tr><th>Date</th><th>Operation</th><th>Input</th><th>Output</th><th>Result</th></tr></thead>
-          <tbody id="analytics-history-tbody"></tbody>
-        </table>
-        <div class="empty-state" id="analytics-history-empty" hidden><div class="empty-icon">📈</div><h3>Chưa có lịch sử xử lý file</h3><p>Dùng File Compare / Splitter / Analyzer / Converter / Data Cleaner để bắt đầu.</p></div>
+        <div class="view-header"><div><h1>📈 Analytics</h1><p>Thống kê hoạt động</p></div></div>
+        <div class="stat-row" id="analytics-stats" style="grid-template-columns: repeat(5, 1fr);"></div>
       </section>
 
       <!-- Trash -->
@@ -350,45 +308,6 @@
         <div class="empty-state" id="troubleshooting-empty" hidden><div class="empty-icon">🐛</div><h3>Chưa có case nào</h3><p>Ghi lại sự cố &amp; root cause để tra cứu về sau.</p></div>
       </section>
 
-      <!-- Flashcards -->
-      <section class="view" data-view-id="flashcards">
-        <div class="view-header">
-          <div><h1>Flashcards</h1><p>Học bằng flashcard theo chủ đề kỹ thuật</p></div>
-          <button class="btn btn-primary" id="btn-new-flashcard">＋ New Card</button>
-        </div>
-        <div class="widget-grid" style="grid-template-columns: 2fr 1fr;">
-          <div class="card" id="flashcard-review-box" style="text-align:center; padding:36px 20px;"></div>
-          <div class="card">
-            <div class="card-title">Study Dashboard</div>
-            <ul class="list-plain" id="flashcard-study-stats"></ul>
-          </div>
-        </div>
-        <h3 style="margin:24px 0 10px;">All Cards</h3>
-        <table class="table">
-          <thead><tr><th>Question</th><th>Category</th><th>Difficulty</th><th>Status</th><th>Next Review</th><th></th></tr></thead>
-          <tbody id="flashcards-tbody"></tbody>
-        </table>
-      </section>
-
-      <!-- Knowledge Graph -->
-      <section class="view" data-view-id="knowledge-graph">
-        <div class="view-header"><div><h1>🧠 Knowledge Graph</h1><p>Liên kết [[Tên Note]] giữa các ghi chú, backlinks &amp; graph tự động.</p></div></div>
-        <div class="toolbar">
-          <button class="btn btn-sm" id="graph-zoom-in">🔍+ Zoom In</button>
-          <button class="btn btn-sm" id="graph-zoom-out">🔍- Zoom Out</button>
-          <button class="btn btn-sm" id="graph-reset">↺ Reset</button>
-          <input class="field-input grow" id="graph-search" placeholder="Search node…">
-          <button class="btn btn-sm" id="graph-focus-btn">🎯 Focus Node</button>
-        </div>
-        <p id="graph-truncated-note" hidden style="color:var(--text-muted); font-size:11.5px;">Đồ thị chỉ hiển thị tối đa 300 note đầu tiên để đảm bảo hiệu năng.</p>
-        <div class="empty-state" id="graph-empty" hidden>
-          <div class="empty-icon">🕸️</div><h3>Chưa có liên kết nào</h3>
-          <p>Mở một note và dùng cú pháp [[Tên Note]] để tự động tạo backlink và hiển thị trên graph.</p>
-        </div>
-        <div id="graph-canvas-wrap" style="border:1px solid var(--border); border-radius:var(--radius); overflow:hidden;">
-          <canvas id="graph-canvas" style="display:block; width:100%; cursor:grab;"></canvas>
-        </div>
-      </section>
 
       <!-- Projects -->
       <section class="view" data-view-id="projects">
@@ -398,214 +317,6 @@
         </div>
         <div class="widget-grid" id="projects-grid"></div>
         <div class="empty-state" id="projects-empty" hidden><div class="empty-icon">📁</div><h3>Chưa có project nào</h3><p>Tạo project để nhóm task lại với nhau.</p></div>
-      </section>
-
-      <!-- File Compare -->
-      <section class="view" data-view-id="file-compare">
-        <div class="view-header">
-          <div><h1>🔍 File Compare</h1><p>Full Text · Line by Line · Column by Column · Key-Based Record Compare</p></div>
-        </div>
-        <div class="widget-grid" style="grid-template-columns: 1fr 1fr;">
-          <div class="dropzone" id="compare-dropzone-a"><input type="file" id="compare-input-a" hidden><div class="dz-icon">📄</div>File A — Drop file here or <u>Choose File</u><div id="compare-filename-a" style="margin-top:6px; color:var(--text); font-weight:600;"></div></div>
-          <div class="dropzone" id="compare-dropzone-b"><input type="file" id="compare-input-b" hidden><div class="dz-icon">📄</div>File B — Drop file here or <u>Choose File</u><div id="compare-filename-b" style="margin-top:6px; color:var(--text); font-weight:600;"></div></div>
-        </div>
-        <div class="toolbar">
-          <button class="btn btn-sm" id="compare-hash-btn">🔢 Compute File Hash (MD5 / SHA-256)</button>
-          <span id="compare-hash-status" style="color:var(--text-muted); font-size:12px;"></span>
-        </div>
-        <div id="compare-hash-result" hidden class="card" style="margin-bottom:14px;">
-          <div class="card-title">File Hash</div>
-          <table class="table">
-            <thead><tr><th></th><th>MD5</th><th>SHA-256</th></tr></thead>
-            <tbody>
-              <tr><td>File A</td><td id="hash-a-md5" style="font-family:var(--font-mono); font-size:11px;"></td><td id="hash-a-sha256" style="font-family:var(--font-mono); font-size:11px;"></td></tr>
-              <tr><td>File B</td><td id="hash-b-md5" style="font-family:var(--font-mono); font-size:11px;"></td><td id="hash-b-sha256" style="font-family:var(--font-mono); font-size:11px;"></td></tr>
-            </tbody>
-          </table>
-          <p id="hash-identical-note" style="margin:10px 0 0; font-weight:600;"></p>
-        </div>
-        <div class="toolbar" id="compare-mode">
-          <span class="chip active" data-mode="fulltext">Full Text</span>
-          <span class="chip" data-mode="line">Line by Line</span>
-          <span class="chip" data-mode="column">Column by Column</span>
-          <span class="chip" data-mode="key">Key-Based Record</span>
-          <span class="spacer"></span>
-          <select class="field-input" id="compare-delimiter">
-            <option value="auto">Delimiter: Auto</option><option value=";">;</option><option value=",">,</option><option value="|">|</option><option value="TAB">TAB</option>
-          </select>
-          <label class="chip"><input type="checkbox" id="compare-has-header" checked> First row is header</label>
-        </div>
-        <div class="toolbar">
-          <label class="chip"><input type="checkbox" id="compare-opt-whitespace" checked> Ignore whitespace</label>
-          <label class="chip"><input type="checkbox" id="compare-opt-blank"> Ignore blank lines</label>
-          <label class="chip"><input type="checkbox" id="compare-opt-case"> Ignore case</label>
-          <label class="chip"><input type="checkbox" id="compare-opt-trim"> Trim fields</label>
-          <label class="chip"><input type="checkbox" id="compare-opt-order"> Ignore record order</label>
-          <label class="chip"><input type="checkbox" id="compare-opt-dup"> Ignore duplicate records</label>
-        </div>
-        <div id="compare-key-columns-wrap" hidden style="margin-bottom:14px;">
-          <p style="margin:0 0 6px; color:var(--text-secondary); font-size:12px;">Key Column(s):</p>
-          <div class="toolbar" id="compare-key-columns"></div>
-          <p style="margin:10px 0 6px; color:var(--text-secondary); font-size:12px;">Compare Columns:</p>
-          <div class="toolbar" id="compare-compare-columns"></div>
-        </div>
-        <div class="toolbar">
-          <button class="btn btn-primary" id="compare-run">▶ Compare</button>
-          <button class="btn" id="compare-cancel">Cancel</button>
-        </div>
-        <div id="compare-progress-wrap" hidden style="margin-bottom:14px;">
-          <div class="progress-bar"><div class="fill" id="compare-progress-fill"></div></div>
-          <p id="compare-progress-text" style="color:var(--text-secondary); font-size:12px; margin:6px 0 0;"></p>
-        </div>
-
-        <div id="compare-result" hidden>
-          <div class="stat-row" id="compare-stats" style="grid-template-columns: repeat(4, 1fr);"></div>
-          <p id="compare-identical" hidden style="color:var(--success); font-weight:600;"></p>
-          <p id="compare-cap-note" hidden style="color:var(--text-muted); font-size:11.5px;"></p>
-          <div class="toolbar" id="compare-tabs">
-            <span class="chip active" data-tab="All">All</span>
-            <span class="chip" data-tab="Same">Same</span>
-            <span class="chip" data-tab="Added">Added</span>
-            <span class="chip" data-tab="Deleted">Deleted</span>
-            <span class="chip" data-tab="Modified">Modified</span>
-          </div>
-          <div style="max-height:420px; overflow:auto; border:1px solid var(--border); border-radius:var(--radius);">
-            <table class="table">
-              <thead><tr><th>Type</th><th>File A</th><th>File B</th><th>Column Diff</th></tr></thead>
-              <tbody id="compare-table-body"></tbody>
-            </table>
-          </div>
-          <div class="toolbar" id="compare-export" style="margin-top:12px;">
-            <button class="btn btn-sm" data-export="Added" data-format="csv">Export Added (CSV)</button>
-            <button class="btn btn-sm" data-export="Deleted" data-format="csv">Export Deleted (CSV)</button>
-            <button class="btn btn-sm" data-export="Modified" data-format="csv">Export Modified (CSV)</button>
-            <button class="btn btn-sm" data-export="All" data-format="json">Export All (JSON)</button>
-            <span class="spacer"></span>
-            <button class="btn btn-sm btn-primary" id="btn-create-note-from-compare">Create Note From Result</button>
-          </div>
-        </div>
-      </section>
-
-      <!-- File Splitter -->
-      <section class="view" data-view-id="file-splitter">
-        <div class="view-header"><div><h1>✂️ File Splitter</h1><p>Split by Lines hoặc Size — xử lý theo chunk, không load toàn bộ file vào RAM.</p></div></div>
-        <div class="dropzone" id="splitter-dropzone"><input type="file" id="splitter-input" hidden><div class="dz-icon">📂</div>Drop file here or <u>Choose File</u><div id="splitter-filename" style="margin-top:6px; color:var(--text); font-weight:600;"></div></div>
-        <div class="toolbar">
-          <select class="field-input" id="splitter-mode"><option value="lines">Split by Lines</option><option value="size">Split by Size (MB)</option></select>
-          <label style="display:flex; align-items:center; gap:6px;"><span id="splitter-value-label" style="color:var(--text-secondary); font-size:12px;">Lines per file</span><input class="field-input" id="splitter-value" type="number" value="500000" style="width:120px;"></label>
-          <label class="chip"><input type="checkbox" id="splitter-preserve-header" checked> Preserve header</label>
-        </div>
-        <div class="toolbar">
-          <button class="btn btn-primary" id="splitter-run">▶ Split</button>
-          <button class="btn" id="splitter-cancel">Cancel</button>
-        </div>
-        <div id="splitter-progress-wrap" hidden style="margin-bottom:14px;">
-          <div class="progress-bar"><div class="fill" id="splitter-progress-fill"></div></div>
-          <p id="splitter-progress-text" style="color:var(--text-secondary); font-size:12px; margin:6px 0 0;"></p>
-        </div>
-        <div id="splitter-result" hidden>
-          <div class="toolbar"><button class="btn btn-primary" id="splitter-download-zip">⬇ Download All as ZIP</button></div>
-          <table class="table">
-            <thead><tr><th>Part</th><th>Lines</th><th>Size</th><th></th></tr></thead>
-            <tbody id="splitter-parts"></tbody>
-          </table>
-        </div>
-      </section>
-
-      <!-- File Analyzer -->
-      <section class="view" data-view-id="file-analyzer">
-        <div class="view-header"><div><h1>📊 File Analyzer</h1><p>Encoding, line ending, delimiter, số dòng/cột, thống kê từng cột.</p></div></div>
-        <div class="dropzone" id="analyzer-dropzone"><input type="file" id="analyzer-input" hidden><div class="dz-icon">📂</div>Drop file here or <u>Choose File</u></div>
-        <div class="toolbar"><label class="chip"><input type="checkbox" id="analyzer-has-header" checked> First row is header</label></div>
-        <div id="analyzer-progress-wrap" hidden style="margin-bottom:14px;">
-          <div class="toolbar"><span class="spacer"></span><button class="btn btn-sm" id="analyzer-cancel">Cancel</button></div>
-          <div class="progress-bar"><div class="fill" id="analyzer-progress-fill"></div></div>
-          <p id="analyzer-progress-text" style="color:var(--text-secondary); font-size:12px; margin:6px 0 0;"></p>
-        </div>
-        <div id="analyzer-result" hidden></div>
-      </section>
-
-      <!-- File Converter -->
-      <section class="view" data-view-id="file-converter">
-        <div class="view-header"><div><h1>🔄 File Converter</h1><p>CSV ⇄ TXT ⇄ TSV ⇄ JSON ⇄ JSONL, encoding &amp; line ending.</p></div></div>
-        <div class="dropzone" id="converter-dropzone"><input type="file" id="converter-input" hidden><div class="dz-icon">📂</div>Drop file here or <u>Choose File</u><div id="converter-filename" style="margin-top:6px; color:var(--text); font-weight:600;"></div></div>
-        <div class="toolbar">
-          <span style="color:var(--text-secondary); font-size:12px;">From</span>
-          <select class="field-input" id="converter-from"><option value="csv">CSV</option><option value="tsv">TSV</option><option value="txt">TXT</option><option value="json">JSON</option><option value="jsonl">JSONL</option></select>
-          <span style="color:var(--text-secondary); font-size:12px;">To</span>
-          <select class="field-input" id="converter-to"><option value="json">JSON</option><option value="csv">CSV</option><option value="tsv">TSV</option><option value="jsonl">JSONL</option><option value="txt">TXT</option></select>
-        </div>
-        <div class="toolbar">
-          <span style="color:var(--text-secondary); font-size:12px;">Delimiter in</span>
-          <select class="field-input" id="converter-delim-in"><option value=";">;</option><option value=",">,</option><option value="|">|</option><option value="TAB">TAB</option></select>
-          <span style="color:var(--text-secondary); font-size:12px;">Delimiter out</span>
-          <select class="field-input" id="converter-delim-out"><option value=",">,</option><option value=";">;</option><option value="|">|</option><option value="TAB">TAB</option></select>
-          <span style="color:var(--text-secondary); font-size:12px;">Line ending</span>
-          <select class="field-input" id="converter-line-ending"><option value="LF">LF</option><option value="CRLF">CRLF</option></select>
-          <span style="color:var(--text-secondary); font-size:12px;">Encoding out</span>
-          <select class="field-input" id="converter-encoding-out"><option value="UTF-8">UTF-8</option><option value="UTF-16">UTF-16</option></select>
-        </div>
-        <button class="btn btn-primary" id="converter-run">▶ Convert &amp; Download</button>
-        <div id="converter-progress-wrap" hidden style="margin:14px 0;">
-          <div class="progress-bar"><div class="fill" id="converter-progress-fill"></div></div>
-          <p id="converter-progress-text" style="color:var(--text-secondary); font-size:12px; margin:6px 0 0;"></p>
-        </div>
-        <div id="converter-result" hidden style="margin-top:14px;"></div>
-      </section>
-
-      <!-- File Viewer -->
-      <section class="view" data-view-id="file-viewer">
-        <div class="view-header"><div><h1>👁️ File Viewer</h1><p>Text / log / CSV / JSON / YAML / code / image / ZIP, kèm Raw/Hex Viewer cho file nhị phân.</p></div></div>
-        <div class="dropzone" id="viewer-dropzone"><input type="file" id="viewer-input" hidden><div class="dz-icon">📂</div>Drop file here or <u>Choose File</u></div>
-        <div id="viewer-content" hidden>
-          <div class="toolbar">
-            <span id="viewer-filename" style="font-weight:600;"></span>
-            <span class="badge" id="viewer-size"></span>
-            <span class="badge" id="viewer-encoding"></span>
-            <span class="badge" id="viewer-line-ending"></span>
-            <select class="field-input" id="viewer-encoding-override">
-              <option value="">Auto encoding</option><option>UTF-8</option><option>UTF-8 BOM</option><option>UTF-16 LE</option><option>UTF-16 BE</option><option>Windows-1252</option>
-            </select>
-            <span class="spacer"></span>
-            <button class="btn btn-sm" id="viewer-hex-toggle">Hex View</button>
-          </div>
-          <div class="empty-state" id="viewer-warning" hidden style="padding:14px; text-align:left; display:block;"></div>
-          <pre class="code-pre" id="viewer-pre"></pre>
-          <img id="viewer-img" style="display:none; max-height:520px; border-radius:var(--radius);">
-        </div>
-      </section>
-
-      <!-- Data Cleaner -->
-      <section class="view" data-view-id="data-cleaner">
-        <div class="view-header"><div><h1>🧹 Data Cleaner</h1><p>Remove empty/duplicate lines, trim, remove BOM, normalize line ending, find/replace, regex.</p></div></div>
-        <div class="dropzone" id="cleaner-dropzone"><input type="file" id="cleaner-input" hidden><div class="dz-icon">📂</div>Drop file here or <u>Choose File</u><div id="cleaner-filename" style="margin-top:6px; color:var(--text); font-weight:600;"></div></div>
-        <div class="toolbar">
-          <label class="chip"><input type="checkbox" id="cleaner-remove-empty"> Remove empty lines</label>
-          <label class="chip"><input type="checkbox" id="cleaner-remove-dup"> Remove duplicate lines</label>
-          <label class="chip"><input type="checkbox" id="cleaner-trim"> Trim whitespace</label>
-          <label class="chip"><input type="checkbox" id="cleaner-remove-bom" checked> Remove BOM</label>
-          <label class="chip"><input type="checkbox" id="cleaner-sort"> Sort</label>
-          <select class="field-input" id="cleaner-normalize-ending"><option value="LF">Line ending: LF</option><option value="CRLF">Line ending: CRLF</option></select>
-        </div>
-        <div class="toolbar">
-          <input class="field-input grow" id="cleaner-find" placeholder="Find…">
-          <input class="field-input grow" id="cleaner-replace" placeholder="Replace with…">
-          <label class="chip"><input type="checkbox" id="cleaner-use-regex"> Regex</label>
-        </div>
-        <div class="toolbar">
-          <span style="color:var(--text-secondary); font-size:12px;">Filter</span>
-          <select class="field-input" id="cleaner-filter-mode">
-            <option value="none">No filter</option>
-            <option value="keep">Keep lines containing…</option>
-            <option value="remove">Remove lines containing…</option>
-          </select>
-          <input class="field-input grow" id="cleaner-filter-value" placeholder="Text or /regex/">
-        </div>
-        <button class="btn btn-primary" id="cleaner-run">▶ Run &amp; Download</button>
-        <div id="cleaner-progress-wrap" hidden style="margin:14px 0;">
-          <div class="progress-bar"><div class="fill" id="cleaner-progress-fill"></div></div>
-        </div>
-        <div id="cleaner-result" hidden style="margin-top:14px;"></div>
       </section>
 
       <!-- Settings -->
@@ -624,15 +335,6 @@
             <ul class="list-plain">
               <li class="list-row"><span class="title">Theme</span><span class="meta">Dark / Light</span></li>
               <li class="list-row"><span class="title">Sidebar</span><span class="meta">Expanded</span></li>
-            </ul>
-          </div>
-          <div class="card">
-            <div class="card-title">File Tools</div>
-            <ul class="list-plain">
-              <li class="list-row"><span class="title">Default encoding</span><span class="meta">UTF-8</span></li>
-              <li class="list-row"><span class="title">Default delimiter</span><span class="meta">Auto</span></li>
-              <li class="list-row"><span class="title">Chunk size</span><span class="meta">64 MB</span></li>
-              <li class="list-row"><span class="title">Worker count</span><span class="meta">4</span></li>
             </ul>
           </div>
           <div class="card">
@@ -661,12 +363,14 @@
               <li class="list-row"><span class="title">Save</span><span class="meta"><kbd>Ctrl S</kbd></span></li>
               <li class="list-row"><span class="title">Quick Capture</span><span class="meta"><kbd>Ctrl Shift N</kbd></span></li>
               <li class="list-row"><span class="title">Command Palette</span><span class="meta"><kbd>Ctrl Shift P</kbd></span></li>
-              <li class="list-row"><span class="title">Focus Mode</span><span class="meta"><kbd>Ctrl Shift F</kbd></span></li>
             </ul>
           </div>
           <div class="card">
             <div class="card-title">About</div>
-            <p style="color:var(--text-secondary)">vNote Ultra Web — 100% static, offline-first personal knowledge &amp; file operations center.</p>
+            <p style="color:var(--text-secondary); margin-bottom:8px;">vNote — 100% static, offline-first personal knowledge &amp; work center.</p>
+            <ul class="list-plain">
+              <li class="list-row"><span class="title">Author</span><span class="meta">UyTL4</span></li>
+            </ul>
           </div>
         </div>
       </section>
@@ -691,7 +395,7 @@
     <button data-view="notes"><span class="mn-icon">📝</span>Notes</button>
     <button id="mn-search"><span class="mn-icon">🔍</span>Search</button>
     <button data-view="tasks"><span class="mn-icon">✅</span>Tasks</button>
-    <button data-view="file-compare"><span class="mn-icon">📂</span>Files</button>
+    <button data-view="projects"><span class="mn-icon">📁</span>Projects</button>
   </nav>
 </div>
 
@@ -772,7 +476,6 @@
     </div>
     <textarea class="qc-textarea editor-textarea" id="note-content" placeholder="Nội dung markdown… (dùng [[Tên Note]] để liên kết)"></textarea>
     <div class="md-preview" id="note-preview" hidden></div>
-    <div id="note-backlinks" hidden style="padding:8px 16px; border-top:1px solid var(--border); font-size:12px; color:var(--text-secondary);"></div>
     <div class="modal-footer">
       <span id="note-save-status" style="color:var(--text-muted); font-size:11.5px; align-self:center;"></span>
       <span class="spacer" style="flex:1"></span>
@@ -911,25 +614,6 @@
   </div>
 </div>
 
-<!-- ============ FLASHCARD EDITOR MODAL ============ -->
-<div class="overlay" id="overlay-flashcard-editor">
-  <div class="modal" style="max-width:520px;">
-    <div class="editor-toolbar">
-      <input class="field-input grow" id="fc-category" placeholder="Category (Kubernetes, OCS…)">
-      <select class="field-input" id="fc-difficulty"><option>Easy</option><option>Medium</option><option>Hard</option></select>
-    </div>
-    <input class="field-input editor-tags-input" id="fc-tags" placeholder="Tags (phân cách bằng dấu phẩy)">
-    <textarea class="qc-textarea" id="fc-question" style="min-height:70px;" placeholder="Question…"></textarea>
-    <textarea class="qc-textarea" id="fc-answer" style="min-height:100px;" placeholder="Answer…"></textarea>
-    <div class="modal-footer">
-      <button class="btn" id="fc-delete">Delete</button>
-      <span class="spacer" style="flex:1"></span>
-      <button class="btn" id="fc-cancel">Close</button>
-      <button class="btn btn-primary" id="fc-save">Save</button>
-    </div>
-  </div>
-</div>
-
 <!-- ============ PROJECT EDITOR MODAL ============ -->
 <div class="overlay" id="overlay-project-editor">
   <div class="modal" style="max-width:480px;">
@@ -962,18 +646,8 @@
 <script src="js/commands.js"></script>
 <script src="js/snippets.js"></script>
 <script src="js/troubleshooting.js"></script>
-<script src="js/flashcards.js"></script>
-<script src="js/graph.js"></script>
 <script src="js/markdown.js"></script>
-<script src="js/file-tools/parsers.js"></script>
-<script src="js/file-tools/hash.js"></script>
-<script src="js/file-tools/zip.js"></script>
-<script src="js/file-tools/viewer.js"></script>
-<script src="js/file-tools/analyzer.js"></script>
-<script src="js/file-tools/converter.js"></script>
-<script src="js/file-tools/cleaner.js"></script>
-<script src="js/file-tools/compare.js"></script>
-<script src="js/file-tools/splitter.js"></script>
+<script src="js/zip.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

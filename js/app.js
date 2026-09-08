@@ -115,10 +115,8 @@
     else if (viewId === 'command-center') window.VNoteCommands.render();
     else if (viewId === 'snippets') window.VNoteSnippets.render();
     else if (viewId === 'troubleshooting') window.VNoteTroubleshooting.render();
-    else if (viewId === 'flashcards') window.VNoteFlashcards.render();
     else if (viewId === 'projects') window.VNoteProjects.render();
     else if (viewId === 'analytics') refreshAnalytics();
-    else if (viewId === 'knowledge-graph') window.VNoteGraph.refresh();
     else if (GENERIC_VIEWS[viewId] && GENERIC_VIEWS[viewId].categoryFilter) refreshCategoryView(viewId, GENERIC_VIEWS[viewId].categoryFilter);
     else if (viewId.indexOf('work-cat-') === 0) {
       var cat = window.VNoteCategories.findCached(viewId.slice('work-cat-'.length));
@@ -134,28 +132,16 @@
   }
 
   function refreshAnalytics() {
-    var U = window.VNoteUtil;
     Promise.all([
       window.VNoteNotes.getAllActive(), window.VNoteTasks.getAllActive(), window.VNoteCommands.getAll(),
-      window.VNoteSnippets.getAll(), window.VNoteTroubleshooting.getAll(), window.VNoteFlashcards.getAll(),
-      window.VNoteDB.getAll('history')
+      window.VNoteSnippets.getAll(), window.VNoteTroubleshooting.getAll()
     ]).then(function (res) {
-      var counts = { notes: res[0].length, tasks: res[1].length, commands: res[2].length, snippets: res[3].length, troubleshooting: res[4].length, flashcards: res[5].length };
-      var history = res[6].sort(function (a, b) { return (b.createdAt || '').localeCompare(a.createdAt || ''); });
+      var counts = { notes: res[0].length, tasks: res[1].length, commands: res[2].length, snippets: res[3].length, troubleshooting: res[4].length };
 
       setHtml('analytics-stats',
-        ['notes', 'tasks', 'commands', 'snippets', 'troubleshooting', 'flashcards'].map(function (k) {
+        ['notes', 'tasks', 'commands', 'snippets', 'troubleshooting'].map(function (k) {
           return '<div class="stat-card"><div class="stat-value">' + counts[k] + '</div><div class="stat-label">' + k[0].toUpperCase() + k.slice(1) + '</div></div>';
         }).join(''));
-
-      var body = document.getElementById('analytics-history-tbody');
-      var empty = document.getElementById('analytics-history-empty');
-      if (!history.length) { body.innerHTML = ''; empty.hidden = false; return; }
-      empty.hidden = true;
-      body.innerHTML = history.slice(0, 100).map(function (h) {
-        return '<tr><td>' + U.formatDate(h.createdAt) + '</td><td><span class="badge">' + h.type + '</span></td>' +
-          '<td>' + U.escapeHtml(h.input || '') + '</td><td>' + U.escapeHtml(h.output || '') + '</td><td>' + U.escapeHtml(h.result || '') + '</td></tr>';
-      }).join('');
     });
   }
 
@@ -260,15 +246,6 @@
   }
 
   /* ---------------------------------------------------------------- */
-  /* Focus mode                                                        */
-  /* ---------------------------------------------------------------- */
-
-  function toggleFocusMode() {
-    app.classList.toggle('focus-mode');
-  }
-  document.getElementById('btn-focus-mode').addEventListener('click', toggleFocusMode);
-
-  /* ---------------------------------------------------------------- */
   /* Toast                                                             */
   /* ---------------------------------------------------------------- */
 
@@ -327,11 +304,6 @@
     { label: 'New Command', run: function () { navigateTo('command-center'); } },
     { label: 'Search', run: function () { openOverlay(overlaySearch, document.getElementById('search-input')); } },
     { label: 'Dashboard', run: function () { navigateTo('dashboard'); } },
-    { label: 'File Compare', run: function () { navigateTo('file-compare'); } },
-    { label: 'File Splitter', run: function () { navigateTo('file-splitter'); } },
-    { label: 'File Analyzer', run: function () { navigateTo('file-analyzer'); } },
-    { label: 'File Converter', run: function () { navigateTo('file-converter'); } },
-    { label: 'File Viewer', run: function () { navigateTo('file-viewer'); } },
     { label: 'Backup', run: function () { navigateTo('settings'); showToast('Backup Now (demo)'); } },
     { label: 'Restore', run: function () { navigateTo('settings'); showToast('Restore (demo)'); } },
     { label: 'Settings', run: function () { navigateTo('settings'); } },
@@ -474,21 +446,6 @@
     if (mod && e.shiftKey && e.key.toLowerCase() === 'p') {
       e.preventDefault();
       openPalette();
-      return;
-    }
-    if (mod && e.shiftKey && e.key.toLowerCase() === 'f') {
-      e.preventDefault();
-      toggleFocusMode();
-      return;
-    }
-    if (mod && e.shiftKey && e.key.toLowerCase() === 'c') {
-      e.preventDefault();
-      navigateTo('file-compare');
-      return;
-    }
-    if (mod && e.shiftKey && e.key.toLowerCase() === 'a') {
-      e.preventDefault();
-      navigateTo('file-analyzer');
       return;
     }
     if (e.key === 'Escape') {
@@ -742,8 +699,7 @@
   document.getElementById('btn-load-demo').addEventListener('click', function () {
     Promise.all([
       window.VNoteNotes.seedIfEmpty(), window.VNoteTasks.seedIfEmpty(), window.VNoteProjects.seedIfEmpty(),
-      window.VNoteCommands.seedIfEmpty(), window.VNoteSnippets.seedIfEmpty(), window.VNoteTroubleshooting.seedIfEmpty(),
-      window.VNoteFlashcards.seedIfEmpty()
+      window.VNoteCommands.seedIfEmpty(), window.VNoteSnippets.seedIfEmpty(), window.VNoteTroubleshooting.seedIfEmpty()
     ]).then(function () {
       showToast('Đã nạp demo data');
       onDataChanged();
@@ -753,8 +709,7 @@
   document.getElementById('btn-clear-demo').addEventListener('click', function () {
     Promise.all([
       window.VNoteNotes.clearAll(), window.VNoteTasks.clearAll(), window.VNoteProjects.clearAll(),
-      window.VNoteCommands.clearAll(), window.VNoteSnippets.clearAll(), window.VNoteTroubleshooting.clearAll(),
-      window.VNoteFlashcards.clearAll()
+      window.VNoteCommands.clearAll(), window.VNoteSnippets.clearAll(), window.VNoteTroubleshooting.clearAll()
     ]).then(function () {
       showToast('Đã xoá toàn bộ dữ liệu');
       onDataChanged();
@@ -801,14 +756,6 @@
   window.VNoteCommands.bindOnce();
   window.VNoteSnippets.bindOnce();
   window.VNoteTroubleshooting.bindOnce();
-  window.VNoteFlashcards.bindOnce();
-  window.VNoteFileViewer.bindOnce();
-  window.VNoteFileAnalyzer.bindOnce();
-  window.VNoteFileConverter.bindOnce();
-  window.VNoteFileCleaner.bindOnce();
-  window.VNoteFileCompare.bindOnce();
-  window.VNoteFileSplitter.bindOnce();
-  window.VNoteGraph.bindOnce();
   window.VNoteCategories.bindOnce();
 
   window.VNoteDB.open().then(function () {
@@ -819,7 +766,6 @@
       window.VNoteCommands.seedIfEmpty(),
       window.VNoteSnippets.seedIfEmpty(),
       window.VNoteTroubleshooting.seedIfEmpty(),
-      window.VNoteFlashcards.seedIfEmpty(),
       window.VNoteCategories.seedIfEmpty()
     ]);
   }).then(function () {
