@@ -112,8 +112,10 @@ window.VNoteNotes = (function () {
         contentInput.value = note.content || '';
         overlay.classList.add('open');
         titleInput.focus();
+        renderBacklinks(note);
       });
     } else {
+      document.getElementById('note-backlinks').hidden = true;
       titleInput.value = '';
       categorySelect.value = 'General';
       tagsInput.value = '';
@@ -129,6 +131,22 @@ window.VNoteNotes = (function () {
   function closeEditor() {
     overlay.classList.remove('open');
     state.editingId = null;
+  }
+
+  function renderBacklinks(note) {
+    var el = document.getElementById('note-backlinks');
+    if (!window.VNoteGraph) { el.hidden = true; return; }
+    getAllActive().then(function (all) {
+      var backlinks = window.VNoteGraph.getBacklinks(note.title, all).filter(function (n) { return n.id !== note.id; });
+      if (!backlinks.length) { el.hidden = true; return; }
+      el.hidden = false;
+      el.innerHTML = '<strong>Backlinks (' + backlinks.length + '):</strong> ' + backlinks.map(function (n) {
+        return '<a class="backlink-open" data-id="' + n.id + '" style="color:var(--accent); cursor:pointer; margin-right:10px;">' + U.escapeHtml(n.title) + '</a>';
+      }).join('');
+      el.querySelectorAll('.backlink-open').forEach(function (a) {
+        a.addEventListener('click', function () { openEditor(a.dataset.id); });
+      });
+    });
   }
 
   function save() {
@@ -227,12 +245,12 @@ window.VNoteNotes = (function () {
       if (rows.length) return false;
       var now = new Date().toISOString();
       var demo = [
-        { title: 'OCS Architecture Overview', category: 'OCS', tags: ['ocs', 'diameter'], priority: 'Medium', status: 'Completed', pinned: false, favorite: false, content: '# OCS Architecture\n\nTổng quan kiến trúc OCS: PCRF, GGSN, Diameter Gx/Gy.' },
+        { title: 'OCS Architecture Overview', category: 'OCS', tags: ['ocs', 'diameter'], priority: 'Medium', status: 'Completed', pinned: false, favorite: false, content: '# OCS Architecture\n\nTổng quan kiến trúc OCS: PCRF, GGSN, Diameter Gx/Gy.\n\nXem thêm [[Diameter CCR / CCA cheat sheet]] và [[Kubernetes Useful Commands]] khi triển khai trên K8s.' },
         { title: 'Kubernetes Useful Commands', category: 'Kubernetes', tags: ['k8s', 'cheatsheet'], priority: 'Low', status: 'Completed', pinned: true, favorite: false, content: '```bash\nkubectl get pods -A\nkubectl rollout restart deploy/<name>\n```' },
         { title: 'Elasticsearch Troubleshooting', category: 'Elasticsearch', tags: ['elasticsearch'], priority: 'High', status: 'In Progress', pinned: false, favorite: false, content: '# Elasticsearch slow query checklist\n\n- Check shard allocation\n- Check heap usage' },
         { title: 'Linux AWK Commands', category: 'Linux', tags: ['awk', 'linux'], priority: 'Low', status: 'Completed', pinned: true, favorite: false, content: "awk -F';' '{print $1}' file.dat" },
-        { title: 'Diameter CCR / CCA cheat sheet', category: 'OCS', tags: ['diameter'], priority: 'Medium', status: 'Completed', pinned: false, favorite: true, content: '# CCR / CCA\n\nCredit-Control-Request / Answer flow.' },
-        { title: 'CDR Troubleshooting — REQUEST_TIMEOUT', category: 'CDR', tags: ['cdr', 'timeout'], priority: 'Critical', status: 'Draft', pinned: false, favorite: true, content: '# Problem\n\nREQUEST_TIMEOUT xuất hiện tăng đột biến trên CDR.' },
+        { title: 'Diameter CCR / CCA cheat sheet', category: 'OCS', tags: ['diameter'], priority: 'Medium', status: 'Completed', pinned: false, favorite: true, content: '# CCR / CCA\n\nCredit-Control-Request / Answer flow. Liên quan tới [[CDR Troubleshooting — REQUEST_TIMEOUT]].' },
+        { title: 'CDR Troubleshooting — REQUEST_TIMEOUT', category: 'CDR', tags: ['cdr', 'timeout'], priority: 'Critical', status: 'Draft', pinned: false, favorite: true, content: '# Problem\n\nREQUEST_TIMEOUT xuất hiện tăng đột biến trên CDR. Xem [[OCS Architecture Overview]] và [[Elasticsearch Troubleshooting]] để tra log. Chưa có note [[PCRF Session Debug]].' },
         { title: "Daily Note", category: 'General', tags: ['daily'], priority: 'Low', status: 'Draft', pinned: false, favorite: false, content: '## Priority\n\n## Today\'s Work\n\n## Issues\n\n## Learning\n\n## Ideas\n\n## Completed\n\n## Tomorrow' },
         { title: 'File Compare Example', category: 'Other', tags: ['file-tools'], priority: 'Low', status: 'Completed', pinned: false, favorite: false, content: 'Ví dụ so sánh file_A.dat và file_B.dat theo key MSISDN.' },
         { title: 'File Splitter Example', category: 'Other', tags: ['file-tools'], priority: 'Low', status: 'Completed', pinned: false, favorite: false, content: 'Ví dụ chia file CDR 100k dòng thành các phần 500,000 lines/file.' }

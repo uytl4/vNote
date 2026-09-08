@@ -375,6 +375,26 @@
         </table>
       </section>
 
+      <!-- Knowledge Graph -->
+      <section class="view" data-view-id="knowledge-graph">
+        <div class="view-header"><div><h1>🧠 Knowledge Graph</h1><p>Liên kết [[Tên Note]] giữa các ghi chú, backlinks &amp; graph tự động.</p></div></div>
+        <div class="toolbar">
+          <button class="btn btn-sm" id="graph-zoom-in">🔍+ Zoom In</button>
+          <button class="btn btn-sm" id="graph-zoom-out">🔍- Zoom Out</button>
+          <button class="btn btn-sm" id="graph-reset">↺ Reset</button>
+          <input class="field-input grow" id="graph-search" placeholder="Search node…">
+          <button class="btn btn-sm" id="graph-focus-btn">🎯 Focus Node</button>
+        </div>
+        <p id="graph-truncated-note" hidden style="color:var(--text-muted); font-size:11.5px;">Đồ thị chỉ hiển thị tối đa 300 note đầu tiên để đảm bảo hiệu năng.</p>
+        <div class="empty-state" id="graph-empty" hidden>
+          <div class="empty-icon">🕸️</div><h3>Chưa có liên kết nào</h3>
+          <p>Mở một note và dùng cú pháp [[Tên Note]] để tự động tạo backlink và hiển thị trên graph.</p>
+        </div>
+        <div id="graph-canvas-wrap" style="border:1px solid var(--border); border-radius:var(--radius); overflow:hidden;">
+          <canvas id="graph-canvas" style="display:block; width:100%; cursor:grab;"></canvas>
+        </div>
+      </section>
+
       <!-- Projects -->
       <section class="view" data-view-id="projects">
         <div class="view-header">
@@ -720,7 +740,8 @@
       </select>
     </div>
     <input class="field-input editor-tags-input" id="note-tags" placeholder="Tags (phân cách bằng dấu phẩy)">
-    <textarea class="qc-textarea editor-textarea" id="note-content" placeholder="Nội dung markdown…"></textarea>
+    <textarea class="qc-textarea editor-textarea" id="note-content" placeholder="Nội dung markdown… (dùng [[Tên Note]] để liên kết)"></textarea>
+    <div id="note-backlinks" hidden style="padding:8px 16px; border-top:1px solid var(--border); font-size:12px; color:var(--text-secondary);"></div>
     <div class="modal-footer">
       <span id="note-save-status" style="color:var(--text-muted); font-size:11.5px; align-self:center;"></span>
       <span class="spacer" style="flex:1"></span>
@@ -887,6 +908,7 @@
 <script src="js/snippets.js"></script>
 <script src="js/troubleshooting.js"></script>
 <script src="js/flashcards.js"></script>
+<script src="js/graph.js"></script>
 <script src="js/file-tools/parsers.js"></script>
 <script src="js/file-tools/hash.js"></script>
 <script src="js/file-tools/zip.js"></script>

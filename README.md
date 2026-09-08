@@ -57,10 +57,17 @@ All six tools under 📂 FILE TOOLS are real, working implementations — not mo
 - **Data Cleaner**: remove empty/duplicate lines, trim whitespace, sort, normalize line ending, and find/replace (literal or regex).
 - **File Process History**: every run above is logged to the `history` store and shown on the Analytics page.
 
-**Not implemented yet (next phases)**
+**Phase 5 — Knowledge Graph**
 
-- Knowledge Graph rendering ([[wiki-link]] parsing, backlinks, graph view) — still a placeholder view.
-- Data Cleaner's "Filter" (conditional row filtering by expression) from spec section 35 is not implemented.
+- `js/graph.js` parses `[[Note Title]]` links out of note content, resolves them to real notes by title (case-insensitive), and creates a "ghost" node for a link that doesn't match any note yet (styled dashed/gray, like Obsidian's unresolved links).
+- A dependency-free force-directed layout (Fruchterman-Reingold-style repulsion/attraction, ~150 iterations) lays the graph out on a `<canvas>`; capped at 300 nodes to keep the O(n²) simulation fast.
+- Mouse-wheel zoom, drag-to-pan, click a node to jump straight into that note's editor, a node search box that dims non-matches, and "Focus Node" to center + zoom on a match.
+- The Note editor now shows a live **Backlinks** panel: every other note whose content links to the one you're editing, each clickable.
+- WORK · OCS/Kubernetes/Elasticsearch/Linux/Telecom/CDR/Other and Study (previously static placeholders) now list the real notes filed under that category.
+
+**Not implemented yet**
+
+- Data Cleaner's "Filter" (conditional row filtering by expression) from spec section 35.
 - Backup/Export as ZIP or Markdown (JSON backup only for now), Note Version History.
 - True Web Worker offload for File Tools (see the simplification note above).
 
@@ -83,6 +90,7 @@ js/
   snippets.js          Snippets CRUD
   troubleshooting.js   Troubleshooting case CRUD
   flashcards.js        Flashcards CRUD + spaced-repetition review flow
+  graph.js             Knowledge Graph: [[wiki-link]] parsing, backlinks, force-directed canvas graph
   file-tools/
     parsers.js         streamLines/streamBytes engine, encoding/delimiter/type detection
     hash.js             incremental MD5 + SHA-256

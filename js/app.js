@@ -12,15 +12,14 @@
 
   var GENERIC_VIEWS = {
     'daily-notes': { icon: '📅', title: 'Daily Notes', desc: 'Tự động tạo theo Daily/YYYY/MM/YYYY-MM-DD.md với template: Priority, Today\'s Work, Issues, Learning, Ideas, Completed, Tomorrow.', dailyNote: true },
-    'work-ocs': { icon: '💼', title: 'WORK · OCS', desc: 'Ghi chú &amp; troubleshooting thuộc nhóm OCS.', action: 'New Note', actionView: 'notes' },
-    'work-kubernetes': { icon: '💼', title: 'WORK · Kubernetes', desc: 'Ghi chú &amp; troubleshooting thuộc nhóm Kubernetes.', action: 'New Note', actionView: 'notes' },
-    'work-elasticsearch': { icon: '💼', title: 'WORK · Elasticsearch', desc: 'Ghi chú &amp; troubleshooting thuộc nhóm Elasticsearch.', action: 'New Note', actionView: 'notes' },
-    'work-linux': { icon: '💼', title: 'WORK · Linux', desc: 'Ghi chú &amp; troubleshooting thuộc nhóm Linux.', action: 'New Note', actionView: 'notes' },
-    'work-telecom': { icon: '💼', title: 'WORK · Telecom', desc: 'Ghi chú &amp; troubleshooting thuộc nhóm Telecom.', action: 'New Note', actionView: 'notes' },
-    'work-cdr': { icon: '💼', title: 'WORK · CDR', desc: 'Ghi chú &amp; troubleshooting thuộc nhóm CDR.', action: 'New Note', actionView: 'notes' },
-    'work-other': { icon: '💼', title: 'WORK · Other', desc: 'Các ghi chú công việc khác.', action: 'New Note', actionView: 'notes' },
-    'study': { icon: '📚', title: 'Study', desc: 'Ghi chú học tập, tách biệt với công việc.', action: 'New Note', actionView: 'notes' },
-    'knowledge-graph': { icon: '🧠', title: 'Knowledge Graph', desc: 'Liên kết [[wiki-links]] giữa các note tự động tạo backlinks &amp; graph. Hỗ trợ Zoom, Pan, Search Node, Focus Node.', graph: true }
+    'work-ocs': { icon: '💼', title: 'WORK · OCS', desc: 'Ghi chú &amp; troubleshooting thuộc nhóm OCS.', categoryFilter: 'OCS' },
+    'work-kubernetes': { icon: '💼', title: 'WORK · Kubernetes', desc: 'Ghi chú &amp; troubleshooting thuộc nhóm Kubernetes.', categoryFilter: 'Kubernetes' },
+    'work-elasticsearch': { icon: '💼', title: 'WORK · Elasticsearch', desc: 'Ghi chú &amp; troubleshooting thuộc nhóm Elasticsearch.', categoryFilter: 'Elasticsearch' },
+    'work-linux': { icon: '💼', title: 'WORK · Linux', desc: 'Ghi chú &amp; troubleshooting thuộc nhóm Linux.', categoryFilter: 'Linux' },
+    'work-telecom': { icon: '💼', title: 'WORK · Telecom', desc: 'Ghi chú &amp; troubleshooting thuộc nhóm Telecom.', categoryFilter: 'Telecom' },
+    'work-cdr': { icon: '💼', title: 'WORK · CDR', desc: 'Ghi chú &amp; troubleshooting thuộc nhóm CDR.', categoryFilter: 'CDR' },
+    'work-other': { icon: '💼', title: 'WORK · Other', desc: 'Các ghi chú công việc khác.', categoryFilter: 'Other' },
+    'study': { icon: '📚', title: 'Study', desc: 'Ghi chú học tập, tách biệt với công việc.', categoryFilter: 'Study' }
   };
 
   function buildGenericView(id, meta) {
@@ -35,26 +34,13 @@
       : '';
 
     var body = '';
-    if (meta.graph) {
+    if (meta.categoryFilter) {
       body =
-        '<div class="toolbar">' +
-        '<button class="btn btn-sm" data-toast="Zoom (demo)">🔍 Zoom</button>' +
-        '<button class="btn btn-sm" data-toast="Pan (demo)">✋ Pan</button>' +
-        '<input class="btn btn-sm" style="cursor:text" placeholder="Search node…">' +
-        '<span class="spacer"></span>' +
-        '<button class="btn btn-sm" data-toast="Focus Node (demo)">🎯 Focus Node</button>' +
-        '</div>' +
-        '<div class="empty-state"><div class="empty-icon">🕸️</div>' +
-        '<h3>Graph sẽ hiển thị khi có đủ liên kết [[wiki-link]]</h3>' +
-        '<p>Tạo note và dùng cú pháp [[Tên Note]] để tự động sinh backlinks và node trên graph.</p></div>';
-    } else if (meta.tool) {
-      var opts = (meta.options || []).map(function (o) {
-        return '<label class="chip"><input type="checkbox"> ' + o + '</label>';
-      }).join('');
-      body =
-        '<div class="dropzone"><div class="dz-icon">📂</div>Drop file here or <u>Choose File</u> · hỗ trợ nhiều file</div>' +
-        '<div class="toolbar">' + opts + '</div>' +
-        '<button class="btn btn-primary" data-toast="Engine sẽ được nối trong bản tiếp theo">▶ Run</button>';
+        '<table class="table"><thead><tr><th>Title</th><th>Tags</th><th>Status</th><th>Updated</th></tr></thead>' +
+        '<tbody id="cat-tbody-' + id + '"></tbody></table>' +
+        '<div class="empty-state" id="cat-empty-' + id + '" hidden><div class="empty-icon">' + meta.icon + '</div>' +
+        '<h3>Chưa có note nào trong mục này</h3><p>' + meta.desc + '</p>' +
+        '<button class="btn btn-primary" data-view-link="notes">＋ New Note</button></div>';
     } else {
       body =
         '<div class="empty-state"><div class="empty-icon">' + meta.icon + '</div>' +
@@ -65,9 +51,7 @@
     }
 
     section.innerHTML =
-      '<div class="view-header"><div><h1>' + meta.icon + ' ' + meta.title + '</h1><p>' + meta.desc + '</p></div>' +
-      (meta.tool || meta.graph ? '' : '') +
-      '</div>' + body;
+      '<div class="view-header"><div><h1>' + meta.icon + ' ' + meta.title + '</h1><p>' + meta.desc + '</p></div></div>' + body;
 
     workspace.appendChild(section);
     return section;
@@ -122,6 +106,14 @@
     else if (viewId === 'flashcards') window.VNoteFlashcards.render();
     else if (viewId === 'projects') window.VNoteProjects.render();
     else if (viewId === 'analytics') refreshAnalytics();
+    else if (viewId === 'knowledge-graph') window.VNoteGraph.refresh();
+    else if (GENERIC_VIEWS[viewId] && GENERIC_VIEWS[viewId].categoryFilter) refreshCategoryView(viewId, GENERIC_VIEWS[viewId].categoryFilter);
+  }
+
+  function refreshCategoryView(viewId, category) {
+    window.VNoteNotes.getAllActive().then(function (notes) {
+      renderNoteTable('cat-tbody-' + viewId, 'cat-empty-' + viewId, notes.filter(function (n) { return n.category === category; }));
+    });
   }
 
   function refreshAnalytics() {
@@ -614,7 +606,7 @@
     var activeView = document.querySelector('.view.active');
     if (activeView) refreshView(activeView.dataset.viewId);
   }
-  window.VNoteApp = { onDataChanged: onDataChanged, showToast: showToast };
+  window.VNoteApp = { onDataChanged: onDataChanged, showToast: showToast, navigateTo: navigateTo };
 
   /* ---------------------------------------------------------------- */
   /* Global search — live data                                        */
@@ -754,6 +746,7 @@
   window.VNoteFileCleaner.bindOnce();
   window.VNoteFileCompare.bindOnce();
   window.VNoteFileSplitter.bindOnce();
+  window.VNoteGraph.bindOnce();
 
   window.VNoteDB.open().then(function () {
     return Promise.all([
