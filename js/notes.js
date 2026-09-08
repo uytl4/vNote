@@ -7,8 +7,6 @@ window.VNoteNotes = (function () {
 
   var state = { statusFilter: 'all', query: '', editingId: null, pinned: false, favorite: false };
 
-  var CATEGORIES = ['General', 'OCS', 'Kubernetes', 'Elasticsearch', 'Linux', 'Telecom', 'CDR', 'Other', 'Study'];
-
   function tbody() { return document.getElementById('notes-tbody'); }
   function emptyEl() { return document.getElementById('notes-empty'); }
 
@@ -101,9 +99,10 @@ window.VNoteNotes = (function () {
     pinBtn = document.getElementById('note-pin-btn');
     favoriteBtn = document.getElementById('note-favorite-btn');
 
-    if (categorySelect && !categorySelect.dataset.filled) {
-      categorySelect.innerHTML = CATEGORIES.map(function (c) { return '<option>' + c + '</option>'; }).join('');
-      categorySelect.dataset.filled = '1';
+    if (categorySelect) {
+      var workNames = window.VNoteCategories ? window.VNoteCategories.getCached().map(function (c) { return c.name; }) : [];
+      var allNames = ['General'].concat(workNames, ['Study']);
+      categorySelect.innerHTML = allNames.map(function (c) { return '<option>' + U.escapeHtml(c) + '</option>'; }).join('');
     }
   }
 

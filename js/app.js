@@ -12,13 +12,6 @@
 
   var GENERIC_VIEWS = {
     'daily-notes': { icon: '📅', title: 'Daily Notes', desc: 'Tự động tạo theo Daily/YYYY/MM/YYYY-MM-DD.md với template: Priority, Today\'s Work, Issues, Learning, Ideas, Completed, Tomorrow.', dailyNote: true },
-    'work-ocs': { icon: '💼', title: 'WORK · OCS', desc: 'Ghi chú &amp; troubleshooting thuộc nhóm OCS.', categoryFilter: 'OCS' },
-    'work-kubernetes': { icon: '💼', title: 'WORK · Kubernetes', desc: 'Ghi chú &amp; troubleshooting thuộc nhóm Kubernetes.', categoryFilter: 'Kubernetes' },
-    'work-elasticsearch': { icon: '💼', title: 'WORK · Elasticsearch', desc: 'Ghi chú &amp; troubleshooting thuộc nhóm Elasticsearch.', categoryFilter: 'Elasticsearch' },
-    'work-linux': { icon: '💼', title: 'WORK · Linux', desc: 'Ghi chú &amp; troubleshooting thuộc nhóm Linux.', categoryFilter: 'Linux' },
-    'work-telecom': { icon: '💼', title: 'WORK · Telecom', desc: 'Ghi chú &amp; troubleshooting thuộc nhóm Telecom.', categoryFilter: 'Telecom' },
-    'work-cdr': { icon: '💼', title: 'WORK · CDR', desc: 'Ghi chú &amp; troubleshooting thuộc nhóm CDR.', categoryFilter: 'CDR' },
-    'work-other': { icon: '💼', title: 'WORK · Other', desc: 'Các ghi chú công việc khác.', categoryFilter: 'Other' },
     'study': { icon: '📚', title: 'Study', desc: 'Ghi chú học tập, tách biệt với công việc.', categoryFilter: 'Study' }
   };
 
@@ -62,9 +55,26 @@
   function ensureView(id) {
     var existing = workspace.querySelector('.view[data-view-id="' + id + '"]');
     if (existing) return existing;
+
+    if (id.indexOf('work-cat-') === 0) {
+      var catId = id.slice('work-cat-'.length);
+      var cat = window.VNoteCategories.findCached(catId);
+      var meta = {
+        icon: '💼', title: 'WORK · ' + (cat ? cat.name : '?'),
+        desc: 'Ghi chú &amp; troubleshooting thuộc nhóm ' + (cat ? cat.name : ''),
+        categoryFilter: cat ? cat.name : ''
+      };
+      return buildGenericView(id, meta);
+    }
+
     var meta = GENERIC_VIEWS[id];
     if (!meta) meta = { icon: '❔', title: id, desc: 'Chưa có nội dung cho mục này.' };
     return buildGenericView(id, meta);
+  }
+
+  function invalidateView(viewId) {
+    var el = workspace.querySelector('.view[data-view-id="' + viewId + '"]');
+    if (el) el.remove();
   }
 
   /* ---------------------------------------------------------------- */
@@ -110,6 +120,11 @@
     else if (viewId === 'analytics') refreshAnalytics();
     else if (viewId === 'knowledge-graph') window.VNoteGraph.refresh();
     else if (GENERIC_VIEWS[viewId] && GENERIC_VIEWS[viewId].categoryFilter) refreshCategoryView(viewId, GENERIC_VIEWS[viewId].categoryFilter);
+    else if (viewId.indexOf('work-cat-') === 0) {
+      var cat = window.VNoteCategories.findCached(viewId.slice('work-cat-'.length));
+      if (cat) refreshCategoryView(viewId, cat.name);
+    }
+    window.VNoteCategories.renderSidebar();
   }
 
   function refreshCategoryView(viewId, category) {
@@ -620,7 +635,7 @@
     var activeView = document.querySelector('.view.active');
     if (activeView) refreshView(activeView.dataset.viewId);
   }
-  window.VNoteApp = { onDataChanged: onDataChanged, showToast: showToast, navigateTo: navigateTo };
+  window.VNoteApp = { onDataChanged: onDataChanged, showToast: showToast, navigateTo: navigateTo, invalidateView: invalidateView };
 
   /* ---------------------------------------------------------------- */
   /* Global search — live data                                        */
@@ -794,6 +809,7 @@
   window.VNoteFileCompare.bindOnce();
   window.VNoteFileSplitter.bindOnce();
   window.VNoteGraph.bindOnce();
+  window.VNoteCategories.bindOnce();
 
   window.VNoteDB.open().then(function () {
     return Promise.all([
@@ -803,7 +819,8 @@
       window.VNoteCommands.seedIfEmpty(),
       window.VNoteSnippets.seedIfEmpty(),
       window.VNoteTroubleshooting.seedIfEmpty(),
-      window.VNoteFlashcards.seedIfEmpty()
+      window.VNoteFlashcards.seedIfEmpty(),
+      window.VNoteCategories.seedIfEmpty()
     ]);
   }).then(function () {
     refreshDashboard();

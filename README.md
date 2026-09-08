@@ -83,6 +83,13 @@ All six tools under 📂 FILE TOOLS are real, working implementations — not mo
 - Every fenced code block in the preview gets its own **Copy** button (per spec). Clicking a `[[wiki-link]]` in the preview opens the matching note, or tells you it'll show as a ghost node on the Knowledge Graph until you create it.
 - **Autosave**: 1.5s after you stop typing the title, tags, or content of an existing note, it saves automatically (status shows "Saving…" / "Saved ✓"); `Ctrl+S` still saves immediately, same as before.
 
+**Phase 9 — Editable WORK categories, bug fixes**
+
+- The WORK sidebar group (OCS/Kubernetes/Elasticsearch/.../Other) was hardcoded HTML. It's now backed by a `work_categories` IndexedDB store (`js/categories.js`), rendered dynamically, with a "⚙️ Manage categories" modal to **add**, **rename**, and **delete** categories. Renaming cascades to every note filed under the old name; deleting reassigns its notes to `General` (with a confirm dialog first). The Note editor's category dropdown is built from the same live list.
+- Fixed: the "+ New Note" / "+ New Task" button shown in an empty list's center panel did nothing (never wired to a handler).
+- Fixed: there was no way to actually pin or favorite a note — added Pin/Favorite buttons to the note editor plus quick-toggle 📌/⭐ buttons in the Notes table.
+- Fixed: WORK/Study category views had no always-visible "+ New Note" (pre-filling that category) or per-row delete button.
+
 **Not implemented yet**
 
 - File Converter and Data Cleaner still stream on the main thread only (no worker variant yet) — they don't block the UI thanks to cooperative yielding, but aren't multi-threaded.
@@ -107,6 +114,7 @@ js/
   troubleshooting.js   Troubleshooting case CRUD
   flashcards.js        Flashcards CRUD + spaced-repetition review flow
   graph.js             Knowledge Graph: [[wiki-link]] parsing, backlinks, force-directed canvas graph
+  categories.js        Editable WORK categories (add/rename/delete), dynamic sidebar
   markdown.js          Dependency-free Markdown -> HTML renderer for the note preview
   file-tools/
     parsers.js         streamLines/streamBytes engine, encoding/delimiter/type detection

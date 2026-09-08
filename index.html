@@ -63,13 +63,8 @@
 
         <details class="nav-group" open>
           <summary><span class="nav-icon">💼</span><span class="label">WORK</span><span class="chevron">▸</span></summary>
-          <a class="nav-item nav-item--sub" data-view="work-ocs">OCS</a>
-          <a class="nav-item nav-item--sub" data-view="work-kubernetes">Kubernetes</a>
-          <a class="nav-item nav-item--sub" data-view="work-elasticsearch">Elasticsearch</a>
-          <a class="nav-item nav-item--sub" data-view="work-linux">Linux</a>
-          <a class="nav-item nav-item--sub" data-view="work-telecom">Telecom</a>
-          <a class="nav-item nav-item--sub" data-view="work-cdr">CDR</a>
-          <a class="nav-item nav-item--sub" data-view="work-other">Other</a>
+          <div id="work-categories-list"></div>
+          <a class="nav-item nav-item--sub" id="work-manage-btn" style="color:var(--accent);">⚙️ Manage categories</a>
         </details>
 
         <div class="nav-divider"></div>
@@ -825,6 +820,19 @@
   </div>
 </div>
 
+<!-- ============ WORK CATEGORIES MANAGE MODAL ============ -->
+<div class="overlay" id="overlay-work-categories">
+  <div class="modal" style="max-width:480px;">
+    <div style="padding:14px 16px; border-bottom:1px solid var(--border); font-weight:600;">Manage WORK Categories</div>
+    <div class="modal-list" id="work-categories-manage-list"></div>
+    <div style="display:flex; gap:8px; padding:10px 16px; border-top:1px solid var(--border);">
+      <input class="field-input grow" id="work-category-new-name" placeholder="Tên mục mới…">
+      <button class="btn btn-primary btn-sm" id="work-category-add-btn">＋ Add</button>
+    </div>
+    <div class="modal-footer"><span class="spacer" style="flex:1"></span><button class="btn" id="work-categories-close">Close</button></div>
+  </div>
+</div>
+
 <!-- ============ CONFIRM DIALOG ============ -->
 <div class="overlay" id="overlay-confirm">
   <div class="modal" style="max-width:440px;">
@@ -949,6 +957,7 @@
 <script src="js/db.js"></script>
 <script src="js/notes.js"></script>
 <script src="js/tasks.js"></script>
+<script src="js/categories.js"></script>
 <script src="js/projects.js"></script>
 <script src="js/commands.js"></script>
 <script src="js/snippets.js"></script>
