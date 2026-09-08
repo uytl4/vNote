@@ -346,6 +346,48 @@ kbd {
   margin: 0;
 }
 
+/* ---------- Markdown preview ---------- */
+
+.md-preview {
+  padding: 14px 16px;
+  overflow: auto;
+  min-height: 280px;
+  line-height: 1.55;
+}
+.md-preview h1, .md-preview h2, .md-preview h3 { margin: 0.6em 0 0.3em; }
+.md-preview p { margin: 0.5em 0; }
+.md-preview blockquote { margin: 0.5em 0; padding: 4px 12px; border-left: 3px solid var(--accent); color: var(--text-secondary); }
+.md-preview table { margin: 0.5em 0; }
+.md-preview code { background: var(--bg-tertiary); padding: 1px 5px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.9em; }
+.md-preview mark { background: rgba(210, 153, 34, 0.35); color: inherit; padding: 0 2px; }
+.md-preview .wiki-link { color: var(--accent); cursor: pointer; text-decoration: underline dotted; }
+.md-preview ul.md-checklist { list-style: none; padding-left: 4px; }
+.md-preview img { border-radius: var(--radius-sm); }
+
+.md-code-block { margin: 0.6em 0; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.md-code-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 4px 10px; background: var(--bg-tertiary); font-size: 11px; color: var(--text-muted);
+  font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.03em;
+}
+.md-code-block .code-pre { border: none; border-radius: 0; }
+
+.md-callout {
+  margin: 0.5em 0; padding: 8px 12px; border-radius: var(--radius-sm);
+  background: var(--accent-soft); border-left: 3px solid var(--accent);
+}
+.md-callout-warning { background: rgba(210, 153, 34, 0.15); border-left-color: var(--warning); }
+.md-callout-danger { background: rgba(248, 81, 73, 0.15); border-left-color: var(--danger); }
+
+.editor-tabs { display: flex; gap: 2px; padding: 8px 16px 0; }
+.editor-tabs .chip { border-radius: 6px 6px 0 0; }
+.md-toolbar { display: flex; flex-wrap: wrap; gap: 2px; padding: 6px 12px; border-bottom: 1px solid var(--border); }
+.md-toolbar button {
+  border: none; background: transparent; color: var(--text-secondary); cursor: pointer;
+  padding: 5px 8px; border-radius: var(--radius-sm); font-size: 12.5px; font-family: var(--font-mono);
+}
+.md-toolbar button:hover { background: var(--bg-hover); color: var(--text); }
+
 .diff-added { background: rgba(63, 185, 80, 0.15); }
 .diff-deleted { background: rgba(248, 81, 73, 0.15); }
 .diff-modified { background: rgba(210, 153, 34, 0.15); }

@@ -76,6 +76,13 @@ All six tools under 📂 FILE TOOLS are real, working implementations — not mo
 - **File:// fallback**: Chromium refuses to construct a `Worker` when the page is opened directly via `file://` (`SecurityError: ... cannot be accessed from origin 'null'`) — confirmed with a direct test. Each of the three tools catches that failure and transparently re-runs the exact same logic on the main thread instead (the original streaming implementation, kept as a fallback), so the app keeps working when someone just double-clicks `index.html`, and gets true multi-threading when served over http(s). Verified byte-identical results both ways on the same test files.
 - **Data Cleaner** gained the "Filter" operation from spec section 35: keep or remove lines matching plain text or a `/regex/`.
 
+**Phase 8 — Markdown editor toolbar, preview, autosave**
+
+- The Note editor got the formatting toolbar from spec section 9: Heading, Bold, Italic, Strike, Highlight, Quote, Bullet/Numbered list, Checkbox, Table, Link, `[[Note]]` wiki-link, inline code, fenced code block, and a callout — each wraps/inserts the right Markdown at the cursor.
+- `js/markdown.js` is a small dependency-free Markdown → HTML renderer (headings, bold/italic/strike/highlight, blockquotes, `> [!NOTE]`-style callouts, bullet/numbered/checkbox lists, tables, fenced code blocks, inline code, links and `[[wiki-links]]`). An Edit/Preview tab in the editor renders it live.
+- Every fenced code block in the preview gets its own **Copy** button (per spec). Clicking a `[[wiki-link]]` in the preview opens the matching note, or tells you it'll show as a ghost node on the Knowledge Graph until you create it.
+- **Autosave**: 1.5s after you stop typing the title, tags, or content of an existing note, it saves automatically (status shows "Saving…" / "Saved ✓"); `Ctrl+S` still saves immediately, same as before.
+
 **Not implemented yet**
 
 - File Converter and Data Cleaner still stream on the main thread only (no worker variant yet) — they don't block the UI thanks to cooperative yielding, but aren't multi-threaded.
@@ -100,6 +107,7 @@ js/
   troubleshooting.js   Troubleshooting case CRUD
   flashcards.js        Flashcards CRUD + spaced-repetition review flow
   graph.js             Knowledge Graph: [[wiki-link]] parsing, backlinks, force-directed canvas graph
+  markdown.js          Dependency-free Markdown -> HTML renderer for the note preview
   file-tools/
     parsers.js         streamLines/streamBytes engine, encoding/delimiter/type detection
     hash.js             incremental MD5 + SHA-256

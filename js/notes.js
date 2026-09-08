@@ -113,6 +113,7 @@ window.VNoteNotes = (function () {
         overlay.classList.add('open');
         titleInput.focus();
         renderBacklinks(note);
+        switchTab('edit');
       });
     } else {
       document.getElementById('note-backlinks').hidden = true;
@@ -123,9 +124,97 @@ window.VNoteNotes = (function () {
       statusSelect.value = 'Draft';
       contentInput.value = '';
       overlay.classList.add('open');
-      overlay.classList.add('open');
       titleInput.focus();
+      switchTab('edit');
     }
+  }
+
+  /* ---------------- Markdown toolbar / preview ---------------- */
+
+  var MD_SNIPPETS = {
+    h1: { before: '# ', after: '', block: true },
+    h2: { before: '## ', after: '', block: true },
+    bold: { before: '**', after: '**' },
+    italic: { before: '*', after: '*' },
+    strike: { before: '~~', after: '~~' },
+    highlight: { before: '==', after: '==' },
+    quote: { before: '> ', after: '', block: true },
+    bullet: { before: '- ', after: '', block: true },
+    number: { before: '1. ', after: '', block: true },
+    checkbox: { before: '- [ ] ', after: '', block: true },
+    code: { before: '`', after: '`' },
+    link: { before: '[', after: '](https://)' },
+    wikilink: { before: '[[', after: ']]' }
+  };
+
+  function insertMarkdown(type) {
+    var ta = contentInput;
+    var start = ta.selectionStart, end = ta.selectionEnd;
+    var value = ta.value;
+    var selected = value.slice(start, end);
+
+    if (type === 'codeblock') {
+      var block = '```bash\n' + (selected || 'command') + '\n```';
+      ta.value = value.slice(0, start) + block + value.slice(end);
+      ta.selectionStart = start + 4; ta.selectionEnd = start + 4 + (selected || 'command').length;
+    } else if (type === 'table') {
+      var tbl = '| Column 1 | Column 2 |\n| --- | --- |\n| value 1 | value 2 |';
+      ta.value = value.slice(0, start) + tbl + value.slice(end);
+      ta.selectionStart = ta.selectionEnd = start + tbl.length;
+    } else if (type === 'callout') {
+      var callout = '> [!NOTE] ' + (selected || 'Ghi chú quan trọng');
+      ta.value = value.slice(0, start) + callout + value.slice(end);
+      ta.selectionStart = ta.selectionEnd = start + callout.length;
+    } else {
+      var sn = MD_SNIPPETS[type];
+      if (!sn) return;
+      var mid = selected || (sn.block ? '' : type);
+      var text = sn.before + mid + sn.after;
+      ta.value = value.slice(0, start) + text + value.slice(end);
+      ta.selectionStart = start + sn.before.length;
+      ta.selectionEnd = ta.selectionStart + mid.length;
+    }
+    ta.focus();
+    scheduleAutosave();
+  }
+
+  function switchTab(tab) {
+    document.querySelectorAll('#note-editor-tabs .chip').forEach(function (c) { c.classList.toggle('active', c.dataset.tab === tab); });
+    document.getElementById('note-md-toolbar').hidden = tab !== 'edit';
+    contentInput.hidden = tab !== 'edit';
+    var preview = document.getElementById('note-preview');
+    preview.hidden = tab !== 'preview';
+    if (tab === 'preview') renderPreview();
+  }
+
+  function renderPreview() {
+    var preview = document.getElementById('note-preview');
+    preview.innerHTML = window.VNoteMarkdown.render(contentInput.value);
+    preview.querySelectorAll('.md-copy-code').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var code = btn.closest('.md-code-block').querySelector('code').textContent;
+        if (navigator.clipboard) navigator.clipboard.writeText(code);
+        if (window.VNoteApp) window.VNoteApp.showToast('Đã copy code block');
+      });
+    });
+    preview.querySelectorAll('.wiki-link').forEach(function (span) {
+      span.addEventListener('click', function () {
+        var title = span.dataset.wiki;
+        getAllActive().then(function (all) {
+          var match = all.find(function (n) { return n.title.toLowerCase() === title.toLowerCase(); });
+          if (match) openEditor(match.id);
+          else if (window.VNoteApp) window.VNoteApp.showToast('Chưa có note "' + title + '" — note sẽ hiện trên Knowledge Graph dưới dạng ghost cho tới khi bạn tạo nó.');
+        });
+      });
+    });
+  }
+
+  var autosaveTimer = null;
+  function scheduleAutosave() {
+    clearTimeout(autosaveTimer);
+    autosaveTimer = setTimeout(function () {
+      if (state.editingId && titleInput.value.trim()) save();
+    }, 1500);
   }
 
   function closeEditor() {
@@ -354,6 +443,18 @@ window.VNoteNotes = (function () {
         e.stopPropagation();
         save();
       }
+    });
+    contentInput.addEventListener('input', scheduleAutosave);
+    titleInput.addEventListener('input', scheduleAutosave);
+    tagsInput.addEventListener('input', scheduleAutosave);
+
+    document.getElementById('note-editor-tabs').addEventListener('click', function (e) {
+      var chip = e.target.closest('.chip');
+      if (chip) switchTab(chip.dataset.tab);
+    });
+    document.getElementById('note-md-toolbar').addEventListener('click', function (e) {
+      var btn = e.target.closest('[data-md]');
+      if (btn) insertMarkdown(btn.dataset.md);
     });
   }
 

@@ -750,7 +750,31 @@
       </select>
     </div>
     <input class="field-input editor-tags-input" id="note-tags" placeholder="Tags (phân cách bằng dấu phẩy)">
+
+    <div class="editor-tabs" id="note-editor-tabs">
+      <span class="chip active" data-tab="edit">Edit</span>
+      <span class="chip" data-tab="preview">Preview</span>
+    </div>
+    <div class="md-toolbar" id="note-md-toolbar">
+      <button type="button" data-md="h1" title="Heading 1">H1</button>
+      <button type="button" data-md="h2" title="Heading 2">H2</button>
+      <button type="button" data-md="bold" title="Bold"><strong>B</strong></button>
+      <button type="button" data-md="italic" title="Italic"><em>I</em></button>
+      <button type="button" data-md="strike" title="Strikethrough"><del>S</del></button>
+      <button type="button" data-md="highlight" title="Highlight">==H==</button>
+      <button type="button" data-md="quote" title="Quote">"</button>
+      <button type="button" data-md="bullet" title="Bullet list">• List</button>
+      <button type="button" data-md="number" title="Numbered list">1. List</button>
+      <button type="button" data-md="checkbox" title="Checkbox">☑ Todo</button>
+      <button type="button" data-md="table" title="Table">Table</button>
+      <button type="button" data-md="link" title="Link">🔗 Link</button>
+      <button type="button" data-md="wikilink" title="Link to another note">[[Note]]</button>
+      <button type="button" data-md="code" title="Inline code">`code`</button>
+      <button type="button" data-md="codeblock" title="Code block">```</button>
+      <button type="button" data-md="callout" title="Callout">💡 Callout</button>
+    </div>
     <textarea class="qc-textarea editor-textarea" id="note-content" placeholder="Nội dung markdown… (dùng [[Tên Note]] để liên kết)"></textarea>
+    <div class="md-preview" id="note-preview" hidden></div>
     <div id="note-backlinks" hidden style="padding:8px 16px; border-top:1px solid var(--border); font-size:12px; color:var(--text-secondary);"></div>
     <div class="modal-footer">
       <span id="note-save-status" style="color:var(--text-muted); font-size:11.5px; align-self:center;"></span>
@@ -929,6 +953,7 @@
 <script src="js/troubleshooting.js"></script>
 <script src="js/flashcards.js"></script>
 <script src="js/graph.js"></script>
+<script src="js/markdown.js"></script>
 <script src="js/file-tools/parsers.js"></script>
 <script src="js/file-tools/hash.js"></script>
 <script src="js/file-tools/zip.js"></script>
