@@ -38,6 +38,12 @@ kbd {
   filter: brightness(1.08);
 }
 
+.btn.active {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 .btn-sm {
   padding: 3px 8px;
   font-size: 12px;

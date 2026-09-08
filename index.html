@@ -230,7 +230,7 @@
       <section class="view" data-view-id="pinned">
         <div class="view-header"><div><h1>📌 Pinned</h1><p>Ghi chú đã ghim để truy cập nhanh</p></div></div>
         <table class="table">
-          <thead><tr><th>Title</th><th>Category</th><th>Status</th><th>Updated</th></tr></thead>
+          <thead><tr><th>Title</th><th>Category</th><th>Status</th><th>Updated</th><th></th></tr></thead>
           <tbody id="pinned-tbody"></tbody>
         </table>
         <div class="empty-state" id="pinned-empty" hidden>
@@ -243,7 +243,7 @@
       <section class="view" data-view-id="favorites">
         <div class="view-header"><div><h1>⭐ Favorites</h1><p>Các mục bạn đã đánh dấu yêu thích</p></div></div>
         <table class="table">
-          <thead><tr><th>Title</th><th>Category</th><th>Status</th><th>Updated</th></tr></thead>
+          <thead><tr><th>Title</th><th>Category</th><th>Status</th><th>Updated</th><th></th></tr></thead>
           <tbody id="favorites-tbody"></tbody>
         </table>
         <div class="empty-state" id="favorites-empty" hidden>
@@ -741,6 +741,8 @@
   <div class="modal" style="max-width:720px; max-height:88vh;">
     <div class="editor-toolbar">
       <input class="field-input grow" id="note-title" placeholder="Note title…">
+      <button type="button" class="btn btn-sm" id="note-pin-btn" title="Pin">📌 Pin</button>
+      <button type="button" class="btn btn-sm" id="note-favorite-btn" title="Favorite">⭐ Favorite</button>
       <select class="field-input" id="note-category"></select>
       <select class="field-input" id="note-priority">
         <option>Low</option><option>Medium</option><option>High</option><option>Critical</option>

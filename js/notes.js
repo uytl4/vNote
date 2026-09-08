@@ -5,7 +5,7 @@ window.VNoteNotes = (function () {
   var U = window.VNoteUtil;
   var STORE = 'notes';
 
-  var state = { statusFilter: 'all', query: '', editingId: null };
+  var state = { statusFilter: 'all', query: '', editingId: null, pinned: false, favorite: false };
 
   var CATEGORIES = ['General', 'OCS', 'Kubernetes', 'Elasticsearch', 'Linux', 'Telecom', 'CDR', 'Other', 'Study'];
 
@@ -52,7 +52,10 @@ window.VNoteNotes = (function () {
 
       body.innerHTML = rows.map(function (n) {
         return '<tr data-id="' + n.id + '">' +
-          '<td>' + (n.pinned ? '📌 ' : '') + (n.favorite ? '⭐ ' : '') + '<a class="note-open" data-id="' + n.id + '">' + U.escapeHtml(n.title || 'Untitled') + '</a></td>' +
+          '<td>' +
+          '<button class="btn btn-sm note-pin-toggle" data-id="' + n.id + '" title="Pin" style="opacity:' + (n.pinned ? '1' : '0.35') + '; padding:2px 4px;">📌</button> ' +
+          '<button class="btn btn-sm note-favorite-toggle" data-id="' + n.id + '" title="Favorite" style="opacity:' + (n.favorite ? '1' : '0.35') + '; padding:2px 4px;">⭐</button> ' +
+          '<a class="note-open" data-id="' + n.id + '">' + U.escapeHtml(n.title || 'Untitled') + '</a></td>' +
           '<td>' + U.escapeHtml(n.category || '') + '</td>' +
           '<td>' + U.escapeHtml((n.tags || []).join(', ')) + '</td>' +
           '<td><span class="badge ' + priorityBadgeClass(n.priority) + '">' + U.escapeHtml(n.priority || 'Low') + '</span></td>' +
@@ -62,6 +65,12 @@ window.VNoteNotes = (function () {
           '</tr>';
       }).join('');
 
+      body.querySelectorAll('.note-pin-toggle').forEach(function (el) {
+        el.addEventListener('click', function (e) { e.stopPropagation(); togglePin(el.dataset.id).then(render); });
+      });
+      body.querySelectorAll('.note-favorite-toggle').forEach(function (el) {
+        el.addEventListener('click', function (e) { e.stopPropagation(); toggleFavorite(el.dataset.id).then(render); });
+      });
       body.querySelectorAll('.note-open').forEach(function (el) {
         el.addEventListener('click', function () { openEditor(el.dataset.id); });
       });
@@ -78,7 +87,7 @@ window.VNoteNotes = (function () {
 
   /* ---------------- Editor ---------------- */
 
-  var overlay, titleInput, categorySelect, tagsInput, prioritySelect, statusSelect, contentInput, saveStatusEl;
+  var overlay, titleInput, categorySelect, tagsInput, prioritySelect, statusSelect, contentInput, saveStatusEl, pinBtn, favoriteBtn;
 
   function cacheEls() {
     overlay = document.getElementById('overlay-note-editor');
@@ -89,6 +98,8 @@ window.VNoteNotes = (function () {
     statusSelect = document.getElementById('note-status');
     contentInput = document.getElementById('note-content');
     saveStatusEl = document.getElementById('note-save-status');
+    pinBtn = document.getElementById('note-pin-btn');
+    favoriteBtn = document.getElementById('note-favorite-btn');
 
     if (categorySelect && !categorySelect.dataset.filled) {
       categorySelect.innerHTML = CATEGORIES.map(function (c) { return '<option>' + c + '</option>'; }).join('');
@@ -96,7 +107,7 @@ window.VNoteNotes = (function () {
     }
   }
 
-  function openEditor(id) {
+  function openEditor(id, presetCategory) {
     cacheEls();
     state.editingId = id || null;
     saveStatusEl.textContent = '';
@@ -110,6 +121,9 @@ window.VNoteNotes = (function () {
         prioritySelect.value = note.priority || 'Medium';
         statusSelect.value = note.status || 'Draft';
         contentInput.value = note.content || '';
+        state.pinned = !!note.pinned;
+        state.favorite = !!note.favorite;
+        updatePinFavoriteButtons();
         overlay.classList.add('open');
         titleInput.focus();
         renderBacklinks(note);
@@ -118,15 +132,23 @@ window.VNoteNotes = (function () {
     } else {
       document.getElementById('note-backlinks').hidden = true;
       titleInput.value = '';
-      categorySelect.value = 'General';
+      categorySelect.value = presetCategory || 'General';
       tagsInput.value = '';
       prioritySelect.value = 'Medium';
       statusSelect.value = 'Draft';
       contentInput.value = '';
+      state.pinned = false;
+      state.favorite = false;
+      updatePinFavoriteButtons();
       overlay.classList.add('open');
       titleInput.focus();
       switchTab('edit');
     }
+  }
+
+  function updatePinFavoriteButtons() {
+    pinBtn.classList.toggle('active', state.pinned);
+    favoriteBtn.classList.toggle('active', state.favorite);
   }
 
   /* ---------------- Markdown toolbar / preview ---------------- */
@@ -252,8 +274,8 @@ window.VNoteNotes = (function () {
       priority: prioritySelect.value,
       status: statusSelect.value,
       content: contentInput.value,
-      pinned: false,
-      favorite: false,
+      pinned: state.pinned,
+      favorite: state.favorite,
       deleted: false,
       createdAt: now,
       updatedAt: now
@@ -262,8 +284,6 @@ window.VNoteNotes = (function () {
     var chain = state.editingId ? DB.get(STORE, state.editingId) : Promise.resolve(null);
     return chain.then(function (existing) {
       if (existing) {
-        record.pinned = !!existing.pinned;
-        record.favorite = !!existing.favorite;
         record.createdAt = existing.createdAt || now;
       }
       saveStatusEl.textContent = 'Saving...';
@@ -417,9 +437,20 @@ window.VNoteNotes = (function () {
   function bindOnce() {
     cacheEls();
     document.getElementById('btn-new-note').addEventListener('click', function () { openEditor(null); });
+    document.getElementById('btn-new-note-empty').addEventListener('click', function () { openEditor(null); });
     document.getElementById('note-cancel').addEventListener('click', closeEditor);
     document.getElementById('note-save').addEventListener('click', save);
     document.getElementById('note-history-btn').addEventListener('click', openHistory);
+    pinBtn.addEventListener('click', function () {
+      state.pinned = !state.pinned;
+      updatePinFavoriteButtons();
+      if (state.editingId) save();
+    });
+    favoriteBtn.addEventListener('click', function () {
+      state.favorite = !state.favorite;
+      updatePinFavoriteButtons();
+      if (state.editingId) save();
+    });
     document.getElementById('note-history-close').addEventListener('click', function () {
       document.getElementById('overlay-note-history').classList.remove('open');
     });

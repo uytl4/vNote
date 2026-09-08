@@ -223,6 +223,7 @@ window.VNoteTasks = (function () {
   function bindOnce() {
     cacheEls();
     document.getElementById('btn-new-task').addEventListener('click', function () { openEditor(null); });
+    document.getElementById('btn-new-task-empty').addEventListener('click', function () { openEditor(null); });
     document.getElementById('task-cancel').addEventListener('click', closeEditor);
     document.getElementById('task-save').addEventListener('click', save);
     document.getElementById('task-delete').addEventListener('click', function () {

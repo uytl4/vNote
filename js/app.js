@@ -29,6 +29,8 @@
 
     var actionBtn = meta.dailyNote
       ? '<button class="btn btn-primary" data-action="create-daily-note">＋ Create Today\'s Note</button>'
+      : meta.categoryFilter
+      ? '<button class="btn btn-primary" data-action="new-note-in-category" data-category="' + meta.categoryFilter + '">＋ New Note</button>'
       : meta.action
       ? '<button class="btn btn-primary" data-view-link="' + meta.actionView + '">＋ ' + meta.action + '</button>'
       : '';
@@ -36,11 +38,11 @@
     var body = '';
     if (meta.categoryFilter) {
       body =
-        '<table class="table"><thead><tr><th>Title</th><th>Tags</th><th>Status</th><th>Updated</th></tr></thead>' +
+        '<table class="table"><thead><tr><th>Title</th><th>Tags</th><th>Status</th><th>Updated</th><th></th></tr></thead>' +
         '<tbody id="cat-tbody-' + id + '"></tbody></table>' +
         '<div class="empty-state" id="cat-empty-' + id + '" hidden><div class="empty-icon">' + meta.icon + '</div>' +
         '<h3>Chưa có note nào trong mục này</h3><p>' + meta.desc + '</p>' +
-        '<button class="btn btn-primary" data-view-link="notes">＋ New Note</button></div>';
+        '<button class="btn btn-primary" data-action="new-note-in-category" data-category="' + meta.categoryFilter + '">＋ New Note</button></div>';
     } else {
       body =
         '<div class="empty-state"><div class="empty-icon">' + meta.icon + '</div>' +
@@ -51,7 +53,7 @@
     }
 
     section.innerHTML =
-      '<div class="view-header"><div><h1>' + meta.icon + ' ' + meta.title + '</h1><p>' + meta.desc + '</p></div></div>' + body;
+      '<div class="view-header"><div><h1>' + meta.icon + ' ' + meta.title + '</h1><p>' + meta.desc + '</p></div>' + actionBtn + '</div>' + body;
 
     workspace.appendChild(section);
     return section;
@@ -112,7 +114,7 @@
 
   function refreshCategoryView(viewId, category) {
     window.VNoteNotes.getAllActive().then(function (notes) {
-      renderNoteTable('cat-tbody-' + viewId, 'cat-empty-' + viewId, notes.filter(function (n) { return n.category === category; }));
+      renderNoteTable('cat-tbody-' + viewId, 'cat-empty-' + viewId, notes.filter(function (n) { return n.category === category; }), onDataChanged);
     });
   }
 
@@ -161,6 +163,11 @@
 
     if (e.target.closest('[data-action="create-daily-note"]')) {
       createDailyNote();
+    }
+
+    var newNoteInCategoryBtn = e.target.closest('[data-action="new-note-in-category"]');
+    if (newNoteInCategoryBtn) {
+      window.VNoteNotes.openEditor(null, newNoteInCategoryBtn.dataset.category);
     }
   });
 
@@ -523,12 +530,12 @@
 
   function refreshPinnedFavorites() {
     window.VNoteNotes.getAllActive().then(function (notes) {
-      renderNoteTable('pinned-tbody', 'pinned-empty', notes.filter(function (n) { return n.pinned; }));
-      renderNoteTable('favorites-tbody', 'favorites-empty', notes.filter(function (n) { return n.favorite; }));
+      renderNoteTable('pinned-tbody', 'pinned-empty', notes.filter(function (n) { return n.pinned; }), onDataChanged);
+      renderNoteTable('favorites-tbody', 'favorites-empty', notes.filter(function (n) { return n.favorite; }), onDataChanged);
     });
   }
 
-  function renderNoteTable(tbodyId, emptyId, rows) {
+  function renderNoteTable(tbodyId, emptyId, rows, onChanged) {
     var U = window.VNoteUtil;
     var body = document.getElementById(tbodyId);
     var empty = document.getElementById(emptyId);
@@ -543,10 +550,17 @@
       return '<tr><td><a class="note-open-generic" data-id="' + n.id + '">' + U.escapeHtml(n.title) + '</a></td>' +
         '<td>' + U.escapeHtml(n.category || '') + '</td>' +
         '<td><span class="badge">' + U.escapeHtml(n.status || '') + '</span></td>' +
-        '<td>' + U.relativeTime(n.updatedAt) + '</td></tr>';
+        '<td>' + U.relativeTime(n.updatedAt) + '</td>' +
+        '<td><button class="btn btn-sm note-trash-generic" data-id="' + n.id + '">🗑️</button></td></tr>';
     }).join('');
     body.querySelectorAll('.note-open-generic').forEach(function (el) {
       el.addEventListener('click', function () { window.VNoteNotes.openEditor(el.dataset.id); });
+    });
+    body.querySelectorAll('.note-trash-generic').forEach(function (el) {
+      el.addEventListener('click', function (e) {
+        e.stopPropagation();
+        window.VNoteNotes.softDelete(el.dataset.id).then(function () { if (onChanged) onChanged(); });
+      });
     });
   }
 
