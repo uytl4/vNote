@@ -20,13 +20,7 @@
     'work-cdr': { icon: '💼', title: 'WORK · CDR', desc: 'Ghi chú &amp; troubleshooting thuộc nhóm CDR.', action: 'New Note', actionView: 'notes' },
     'work-other': { icon: '💼', title: 'WORK · Other', desc: 'Các ghi chú công việc khác.', action: 'New Note', actionView: 'notes' },
     'study': { icon: '📚', title: 'Study', desc: 'Ghi chú học tập, tách biệt với công việc.', action: 'New Note', actionView: 'notes' },
-    'analytics': { icon: '📈', title: 'Analytics', desc: 'Thống kê hoạt động: notes, tasks, file operations theo thời gian.' },
-    'knowledge-graph': { icon: '🧠', title: 'Knowledge Graph', desc: 'Liên kết [[wiki-links]] giữa các note tự động tạo backlinks &amp; graph. Hỗ trợ Zoom, Pan, Search Node, Focus Node.', graph: true },
-    'file-splitter': { icon: '✂️', title: 'File Splitter', desc: 'Split by Lines / Size / Records / Column — xử lý theo chunk, không load toàn bộ file vào RAM.', tool: true, options: ['Preserve header', 'Keep records intact'] },
-    'file-analyzer': { icon: '📊', title: 'File Analyzer', desc: 'Phân tích file: encoding, line ending, delimiter, số dòng/cột, thống kê từng cột.', tool: true, options: ['Auto-detect delimiter', 'Deep column analysis'] },
-    'file-converter': { icon: '🔄', title: 'File Converter', desc: 'Chuyển đổi CSV ⇄ TXT ⇄ TSV ⇄ JSON ⇄ JSONL, encoding &amp; line ending.', tool: true, options: ['UTF-8 → UTF-16', 'CRLF → LF', 'Change delimiter'] },
-    'file-viewer': { icon: '👁️', title: 'File Viewer', desc: 'Xem text/log/csv/json/yaml/code/office/archive/image, kèm Raw/Hex Viewer cho file nhị phân.', tool: true, options: ['Detect encoding', 'Show line numbers', 'Raw / Hex fallback'] },
-    'data-cleaner': { icon: '🧹', title: 'Data Cleaner', desc: 'Remove empty/duplicate lines, trim whitespace, remove BOM, normalize line ending, find/replace, regex.', tool: true, options: ['Remove duplicate lines', 'Trim whitespace', 'Normalize line ending'] }
+    'knowledge-graph': { icon: '🧠', title: 'Knowledge Graph', desc: 'Liên kết [[wiki-links]] giữa các note tự động tạo backlinks &amp; graph. Hỗ trợ Zoom, Pan, Search Node, Focus Node.', graph: true }
   };
 
   function buildGenericView(id, meta) {
@@ -127,6 +121,33 @@
     else if (viewId === 'troubleshooting') window.VNoteTroubleshooting.render();
     else if (viewId === 'flashcards') window.VNoteFlashcards.render();
     else if (viewId === 'projects') window.VNoteProjects.render();
+    else if (viewId === 'analytics') refreshAnalytics();
+  }
+
+  function refreshAnalytics() {
+    var U = window.VNoteUtil;
+    Promise.all([
+      window.VNoteNotes.getAllActive(), window.VNoteTasks.getAllActive(), window.VNoteCommands.getAll(),
+      window.VNoteSnippets.getAll(), window.VNoteTroubleshooting.getAll(), window.VNoteFlashcards.getAll(),
+      window.VNoteDB.getAll('history')
+    ]).then(function (res) {
+      var counts = { notes: res[0].length, tasks: res[1].length, commands: res[2].length, snippets: res[3].length, troubleshooting: res[4].length, flashcards: res[5].length };
+      var history = res[6].sort(function (a, b) { return (b.createdAt || '').localeCompare(a.createdAt || ''); });
+
+      setHtml('analytics-stats',
+        ['notes', 'tasks', 'commands', 'snippets', 'troubleshooting', 'flashcards'].map(function (k) {
+          return '<div class="stat-card"><div class="stat-value">' + counts[k] + '</div><div class="stat-label">' + k[0].toUpperCase() + k.slice(1) + '</div></div>';
+        }).join(''));
+
+      var body = document.getElementById('analytics-history-tbody');
+      var empty = document.getElementById('analytics-history-empty');
+      if (!history.length) { body.innerHTML = ''; empty.hidden = false; return; }
+      empty.hidden = true;
+      body.innerHTML = history.slice(0, 100).map(function (h) {
+        return '<tr><td>' + U.formatDate(h.createdAt) + '</td><td><span class="badge">' + h.type + '</span></td>' +
+          '<td>' + U.escapeHtml(h.input || '') + '</td><td>' + U.escapeHtml(h.output || '') + '</td><td>' + U.escapeHtml(h.result || '') + '</td></tr>';
+      }).join('');
+    });
   }
 
   document.addEventListener('click', function (e) {
@@ -593,7 +614,7 @@
     var activeView = document.querySelector('.view.active');
     if (activeView) refreshView(activeView.dataset.viewId);
   }
-  window.VNoteApp = { onDataChanged: onDataChanged };
+  window.VNoteApp = { onDataChanged: onDataChanged, showToast: showToast };
 
   /* ---------------------------------------------------------------- */
   /* Global search — live data                                        */
@@ -727,6 +748,12 @@
   window.VNoteSnippets.bindOnce();
   window.VNoteTroubleshooting.bindOnce();
   window.VNoteFlashcards.bindOnce();
+  window.VNoteFileViewer.bindOnce();
+  window.VNoteFileAnalyzer.bindOnce();
+  window.VNoteFileConverter.bindOnce();
+  window.VNoteFileCleaner.bindOnce();
+  window.VNoteFileCompare.bindOnce();
+  window.VNoteFileSplitter.bindOnce();
 
   window.VNoteDB.open().then(function () {
     return Promise.all([

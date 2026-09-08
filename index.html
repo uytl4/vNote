@@ -278,6 +278,18 @@
         </div>
       </section>
 
+      <!-- Analytics -->
+      <section class="view" data-view-id="analytics">
+        <div class="view-header"><div><h1>📈 Analytics</h1><p>Thống kê hoạt động &amp; File Process History</p></div></div>
+        <div class="stat-row" id="analytics-stats" style="grid-template-columns: repeat(6, 1fr);"></div>
+        <h3 style="margin:20px 0 10px;">File Process History</h3>
+        <table class="table">
+          <thead><tr><th>Date</th><th>Operation</th><th>Input</th><th>Output</th><th>Result</th></tr></thead>
+          <tbody id="analytics-history-tbody"></tbody>
+        </table>
+        <div class="empty-state" id="analytics-history-empty" hidden><div class="empty-icon">📈</div><h3>Chưa có lịch sử xử lý file</h3><p>Dùng File Compare / Splitter / Analyzer / Converter / Data Cleaner để bắt đầu.</p></div>
+      </section>
+
       <!-- Trash -->
       <section class="view" data-view-id="trash">
         <div class="view-header">
@@ -376,44 +388,201 @@
       <!-- File Compare -->
       <section class="view" data-view-id="file-compare">
         <div class="view-header">
-          <div><h1>🔍 File Compare</h1><p>2-Way Compare · Multi-File Compare · Key-Based Record Compare</p></div>
+          <div><h1>🔍 File Compare</h1><p>Full Text · Line by Line · Column by Column · Key-Based Record Compare</p></div>
         </div>
         <div class="widget-grid" style="grid-template-columns: 1fr 1fr;">
-          <div class="dropzone"><div class="dz-icon">📄</div>File A — Drop file here or <u>Choose File</u></div>
-          <div class="dropzone"><div class="dz-icon">📄</div>File B — Drop file here or <u>Choose File</u></div>
+          <div class="dropzone" id="compare-dropzone-a"><input type="file" id="compare-input-a" hidden><div class="dz-icon">📄</div>File A — Drop file here or <u>Choose File</u><div id="compare-filename-a" style="margin-top:6px; color:var(--text); font-weight:600;"></div></div>
+          <div class="dropzone" id="compare-dropzone-b"><input type="file" id="compare-input-b" hidden><div class="dz-icon">📄</div>File B — Drop file here or <u>Choose File</u><div id="compare-filename-b" style="margin-top:6px; color:var(--text); font-weight:600;"></div></div>
         </div>
         <div class="toolbar">
-          <span class="chip active">Full Text</span>
-          <span class="chip">Line by Line</span>
-          <span class="chip">Column by Column</span>
-          <span class="chip">Key-Based Record</span>
+          <button class="btn btn-sm" id="compare-hash-btn">🔢 Compute File Hash (MD5 / SHA-256)</button>
+          <span id="compare-hash-status" style="color:var(--text-muted); font-size:12px;"></span>
+        </div>
+        <div id="compare-hash-result" hidden class="card" style="margin-bottom:14px;">
+          <div class="card-title">File Hash</div>
+          <table class="table">
+            <thead><tr><th></th><th>MD5</th><th>SHA-256</th></tr></thead>
+            <tbody>
+              <tr><td>File A</td><td id="hash-a-md5" style="font-family:var(--font-mono); font-size:11px;"></td><td id="hash-a-sha256" style="font-family:var(--font-mono); font-size:11px;"></td></tr>
+              <tr><td>File B</td><td id="hash-b-md5" style="font-family:var(--font-mono); font-size:11px;"></td><td id="hash-b-sha256" style="font-family:var(--font-mono); font-size:11px;"></td></tr>
+            </tbody>
+          </table>
+          <p id="hash-identical-note" style="margin:10px 0 0; font-weight:600;"></p>
+        </div>
+        <div class="toolbar" id="compare-mode">
+          <span class="chip active" data-mode="fulltext">Full Text</span>
+          <span class="chip" data-mode="line">Line by Line</span>
+          <span class="chip" data-mode="column">Column by Column</span>
+          <span class="chip" data-mode="key">Key-Based Record</span>
           <span class="spacer"></span>
-          <button class="btn btn-sm">Delimiter: Auto ▾</button>
+          <select class="field-input" id="compare-delimiter">
+            <option value="auto">Delimiter: Auto</option><option value=";">;</option><option value=",">,</option><option value="|">|</option><option value="TAB">TAB</option>
+          </select>
+          <label class="chip"><input type="checkbox" id="compare-has-header" checked> First row is header</label>
         </div>
         <div class="toolbar">
-          <label class="chip"><input type="checkbox" checked> Ignore whitespace</label>
-          <label class="chip"><input type="checkbox"> Ignore blank lines</label>
-          <label class="chip"><input type="checkbox"> Ignore case</label>
-          <label class="chip"><input type="checkbox"> Ignore line ending</label>
-          <label class="chip"><input type="checkbox"> Trim fields</label>
-          <label class="chip"><input type="checkbox"> Ignore record order</label>
-          <label class="chip"><input type="checkbox"> Ignore duplicate records</label>
+          <label class="chip"><input type="checkbox" id="compare-opt-whitespace" checked> Ignore whitespace</label>
+          <label class="chip"><input type="checkbox" id="compare-opt-blank"> Ignore blank lines</label>
+          <label class="chip"><input type="checkbox" id="compare-opt-case"> Ignore case</label>
+          <label class="chip"><input type="checkbox" id="compare-opt-trim"> Trim fields</label>
+          <label class="chip"><input type="checkbox" id="compare-opt-order"> Ignore record order</label>
+          <label class="chip"><input type="checkbox" id="compare-opt-dup"> Ignore duplicate records</label>
         </div>
-        <button class="btn btn-primary" data-toast="Chức năng Compare sẽ được nối trong bản tiếp theo">▶ Compare</button>
+        <div id="compare-key-columns-wrap" hidden style="margin-bottom:14px;">
+          <p style="margin:0 0 6px; color:var(--text-secondary); font-size:12px;">Key Column(s):</p>
+          <div class="toolbar" id="compare-key-columns"></div>
+          <p style="margin:10px 0 6px; color:var(--text-secondary); font-size:12px;">Compare Columns:</p>
+          <div class="toolbar" id="compare-compare-columns"></div>
+        </div>
+        <div class="toolbar">
+          <button class="btn btn-primary" id="compare-run">▶ Compare</button>
+          <button class="btn" id="compare-cancel">Cancel</button>
+        </div>
+        <div id="compare-progress-wrap" hidden style="margin-bottom:14px;">
+          <div class="progress-bar"><div class="fill" id="compare-progress-fill"></div></div>
+          <p id="compare-progress-text" style="color:var(--text-secondary); font-size:12px; margin:6px 0 0;"></p>
+        </div>
 
-        <div class="card" style="margin-top:18px;">
-          <div class="card-title">Compare Result (mock)</div>
-          <div class="stat-row" style="grid-template-columns: repeat(5, 1fr);">
-            <div class="stat-card"><div class="stat-value">100,523</div><div class="stat-label">File A lines</div></div>
-            <div class="stat-card"><div class="stat-value">100,527</div><div class="stat-label">File B lines</div></div>
-            <div class="stat-card"><div class="stat-value" style="color:var(--success)">100,100</div><div class="stat-label">Same</div></div>
-            <div class="stat-card"><div class="stat-value" style="color:var(--warning)">573</div><div class="stat-label">Modified</div></div>
-            <div class="stat-card"><div class="stat-value" style="color:var(--danger)">427 / 423</div><div class="stat-label">Added / Deleted</div></div>
+        <div id="compare-result" hidden>
+          <div class="stat-row" id="compare-stats" style="grid-template-columns: repeat(4, 1fr);"></div>
+          <p id="compare-identical" hidden style="color:var(--success); font-weight:600;"></p>
+          <p id="compare-cap-note" hidden style="color:var(--text-muted); font-size:11.5px;"></p>
+          <div class="toolbar" id="compare-tabs">
+            <span class="chip active" data-tab="All">All</span>
+            <span class="chip" data-tab="Same">Same</span>
+            <span class="chip" data-tab="Added">Added</span>
+            <span class="chip" data-tab="Deleted">Deleted</span>
+            <span class="chip" data-tab="Modified">Modified</span>
+          </div>
+          <div style="max-height:420px; overflow:auto; border:1px solid var(--border); border-radius:var(--radius);">
+            <table class="table">
+              <thead><tr><th>Type</th><th>File A</th><th>File B</th><th>Column Diff</th></tr></thead>
+              <tbody id="compare-table-body"></tbody>
+            </table>
+          </div>
+          <div class="toolbar" id="compare-export" style="margin-top:12px;">
+            <button class="btn btn-sm" data-export="Added" data-format="csv">Export Added (CSV)</button>
+            <button class="btn btn-sm" data-export="Deleted" data-format="csv">Export Deleted (CSV)</button>
+            <button class="btn btn-sm" data-export="Modified" data-format="csv">Export Modified (CSV)</button>
+            <button class="btn btn-sm" data-export="All" data-format="json">Export All (JSON)</button>
+            <span class="spacer"></span>
+            <button class="btn btn-sm btn-primary" id="btn-create-note-from-compare">Create Note From Result</button>
           </div>
         </div>
       </section>
 
-      <!-- File Splitter / Analyzer / Converter / Viewer / Data Cleaner : generic tool placeholders, rendered by JS -->
+      <!-- File Splitter -->
+      <section class="view" data-view-id="file-splitter">
+        <div class="view-header"><div><h1>✂️ File Splitter</h1><p>Split by Lines hoặc Size — xử lý theo chunk, không load toàn bộ file vào RAM.</p></div></div>
+        <div class="dropzone" id="splitter-dropzone"><input type="file" id="splitter-input" hidden><div class="dz-icon">📂</div>Drop file here or <u>Choose File</u><div id="splitter-filename" style="margin-top:6px; color:var(--text); font-weight:600;"></div></div>
+        <div class="toolbar">
+          <select class="field-input" id="splitter-mode"><option value="lines">Split by Lines</option><option value="size">Split by Size (MB)</option></select>
+          <label style="display:flex; align-items:center; gap:6px;"><span id="splitter-value-label" style="color:var(--text-secondary); font-size:12px;">Lines per file</span><input class="field-input" id="splitter-value" type="number" value="500000" style="width:120px;"></label>
+          <label class="chip"><input type="checkbox" id="splitter-preserve-header" checked> Preserve header</label>
+        </div>
+        <div class="toolbar">
+          <button class="btn btn-primary" id="splitter-run">▶ Split</button>
+          <button class="btn" id="splitter-cancel">Cancel</button>
+        </div>
+        <div id="splitter-progress-wrap" hidden style="margin-bottom:14px;">
+          <div class="progress-bar"><div class="fill" id="splitter-progress-fill"></div></div>
+          <p id="splitter-progress-text" style="color:var(--text-secondary); font-size:12px; margin:6px 0 0;"></p>
+        </div>
+        <div id="splitter-result" hidden>
+          <div class="toolbar"><button class="btn btn-primary" id="splitter-download-zip">⬇ Download All as ZIP</button></div>
+          <table class="table">
+            <thead><tr><th>Part</th><th>Lines</th><th>Size</th><th></th></tr></thead>
+            <tbody id="splitter-parts"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- File Analyzer -->
+      <section class="view" data-view-id="file-analyzer">
+        <div class="view-header"><div><h1>📊 File Analyzer</h1><p>Encoding, line ending, delimiter, số dòng/cột, thống kê từng cột.</p></div></div>
+        <div class="dropzone" id="analyzer-dropzone"><input type="file" id="analyzer-input" hidden><div class="dz-icon">📂</div>Drop file here or <u>Choose File</u></div>
+        <div class="toolbar"><label class="chip"><input type="checkbox" id="analyzer-has-header" checked> First row is header</label></div>
+        <div id="analyzer-progress-wrap" hidden style="margin-bottom:14px;">
+          <div class="toolbar"><span class="spacer"></span><button class="btn btn-sm" id="analyzer-cancel">Cancel</button></div>
+          <div class="progress-bar"><div class="fill" id="analyzer-progress-fill"></div></div>
+          <p id="analyzer-progress-text" style="color:var(--text-secondary); font-size:12px; margin:6px 0 0;"></p>
+        </div>
+        <div id="analyzer-result" hidden></div>
+      </section>
+
+      <!-- File Converter -->
+      <section class="view" data-view-id="file-converter">
+        <div class="view-header"><div><h1>🔄 File Converter</h1><p>CSV ⇄ TXT ⇄ TSV ⇄ JSON ⇄ JSONL, encoding &amp; line ending.</p></div></div>
+        <div class="dropzone" id="converter-dropzone"><input type="file" id="converter-input" hidden><div class="dz-icon">📂</div>Drop file here or <u>Choose File</u><div id="converter-filename" style="margin-top:6px; color:var(--text); font-weight:600;"></div></div>
+        <div class="toolbar">
+          <span style="color:var(--text-secondary); font-size:12px;">From</span>
+          <select class="field-input" id="converter-from"><option value="csv">CSV</option><option value="tsv">TSV</option><option value="txt">TXT</option><option value="json">JSON</option><option value="jsonl">JSONL</option></select>
+          <span style="color:var(--text-secondary); font-size:12px;">To</span>
+          <select class="field-input" id="converter-to"><option value="json">JSON</option><option value="csv">CSV</option><option value="tsv">TSV</option><option value="jsonl">JSONL</option><option value="txt">TXT</option></select>
+        </div>
+        <div class="toolbar">
+          <span style="color:var(--text-secondary); font-size:12px;">Delimiter in</span>
+          <select class="field-input" id="converter-delim-in"><option value=";">;</option><option value=",">,</option><option value="|">|</option><option value="TAB">TAB</option></select>
+          <span style="color:var(--text-secondary); font-size:12px;">Delimiter out</span>
+          <select class="field-input" id="converter-delim-out"><option value=",">,</option><option value=";">;</option><option value="|">|</option><option value="TAB">TAB</option></select>
+          <span style="color:var(--text-secondary); font-size:12px;">Line ending</span>
+          <select class="field-input" id="converter-line-ending"><option value="LF">LF</option><option value="CRLF">CRLF</option></select>
+          <span style="color:var(--text-secondary); font-size:12px;">Encoding out</span>
+          <select class="field-input" id="converter-encoding-out"><option value="UTF-8">UTF-8</option><option value="UTF-16">UTF-16</option></select>
+        </div>
+        <button class="btn btn-primary" id="converter-run">▶ Convert &amp; Download</button>
+        <div id="converter-progress-wrap" hidden style="margin:14px 0;">
+          <div class="progress-bar"><div class="fill" id="converter-progress-fill"></div></div>
+          <p id="converter-progress-text" style="color:var(--text-secondary); font-size:12px; margin:6px 0 0;"></p>
+        </div>
+        <div id="converter-result" hidden style="margin-top:14px;"></div>
+      </section>
+
+      <!-- File Viewer -->
+      <section class="view" data-view-id="file-viewer">
+        <div class="view-header"><div><h1>👁️ File Viewer</h1><p>Text / log / CSV / JSON / YAML / code / image / ZIP, kèm Raw/Hex Viewer cho file nhị phân.</p></div></div>
+        <div class="dropzone" id="viewer-dropzone"><input type="file" id="viewer-input" hidden><div class="dz-icon">📂</div>Drop file here or <u>Choose File</u></div>
+        <div id="viewer-content" hidden>
+          <div class="toolbar">
+            <span id="viewer-filename" style="font-weight:600;"></span>
+            <span class="badge" id="viewer-size"></span>
+            <span class="badge" id="viewer-encoding"></span>
+            <span class="badge" id="viewer-line-ending"></span>
+            <select class="field-input" id="viewer-encoding-override">
+              <option value="">Auto encoding</option><option>UTF-8</option><option>UTF-8 BOM</option><option>UTF-16 LE</option><option>UTF-16 BE</option><option>Windows-1252</option>
+            </select>
+            <span class="spacer"></span>
+            <button class="btn btn-sm" id="viewer-hex-toggle">Hex View</button>
+          </div>
+          <div class="empty-state" id="viewer-warning" hidden style="padding:14px; text-align:left; display:block;"></div>
+          <pre class="code-pre" id="viewer-pre"></pre>
+          <img id="viewer-img" style="display:none; max-height:520px; border-radius:var(--radius);">
+        </div>
+      </section>
+
+      <!-- Data Cleaner -->
+      <section class="view" data-view-id="data-cleaner">
+        <div class="view-header"><div><h1>🧹 Data Cleaner</h1><p>Remove empty/duplicate lines, trim, remove BOM, normalize line ending, find/replace, regex.</p></div></div>
+        <div class="dropzone" id="cleaner-dropzone"><input type="file" id="cleaner-input" hidden><div class="dz-icon">📂</div>Drop file here or <u>Choose File</u><div id="cleaner-filename" style="margin-top:6px; color:var(--text); font-weight:600;"></div></div>
+        <div class="toolbar">
+          <label class="chip"><input type="checkbox" id="cleaner-remove-empty"> Remove empty lines</label>
+          <label class="chip"><input type="checkbox" id="cleaner-remove-dup"> Remove duplicate lines</label>
+          <label class="chip"><input type="checkbox" id="cleaner-trim"> Trim whitespace</label>
+          <label class="chip"><input type="checkbox" id="cleaner-remove-bom" checked> Remove BOM</label>
+          <label class="chip"><input type="checkbox" id="cleaner-sort"> Sort</label>
+          <select class="field-input" id="cleaner-normalize-ending"><option value="LF">Line ending: LF</option><option value="CRLF">Line ending: CRLF</option></select>
+        </div>
+        <div class="toolbar">
+          <input class="field-input grow" id="cleaner-find" placeholder="Find…">
+          <input class="field-input grow" id="cleaner-replace" placeholder="Replace with…">
+          <label class="chip"><input type="checkbox" id="cleaner-use-regex"> Regex</label>
+        </div>
+        <button class="btn btn-primary" id="cleaner-run">▶ Run &amp; Download</button>
+        <div id="cleaner-progress-wrap" hidden style="margin:14px 0;">
+          <div class="progress-bar"><div class="fill" id="cleaner-progress-fill"></div></div>
+        </div>
+        <div id="cleaner-result" hidden style="margin-top:14px;"></div>
+      </section>
 
       <!-- Settings -->
       <section class="view" data-view-id="settings">
@@ -718,6 +887,15 @@
 <script src="js/snippets.js"></script>
 <script src="js/troubleshooting.js"></script>
 <script src="js/flashcards.js"></script>
+<script src="js/file-tools/parsers.js"></script>
+<script src="js/file-tools/hash.js"></script>
+<script src="js/file-tools/zip.js"></script>
+<script src="js/file-tools/viewer.js"></script>
+<script src="js/file-tools/analyzer.js"></script>
+<script src="js/file-tools/converter.js"></script>
+<script src="js/file-tools/cleaner.js"></script>
+<script src="js/file-tools/compare.js"></script>
+<script src="js/file-tools/splitter.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>
