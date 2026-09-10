@@ -278,34 +278,39 @@
     if (e.target.classList && e.target.classList.contains('overlay')) closeAllOverlays();
   });
 
-  document.getElementById('btn-open-search').addEventListener('click', function () {
-    openOverlay(overlaySearch, document.getElementById('search-input'));
-  });
-  document.getElementById('mn-search').addEventListener('click', function () {
-    openOverlay(overlaySearch, document.getElementById('search-input'));
-  });
+  function openSearch() {
+    var input = document.getElementById('search-input');
+    openOverlay(overlaySearch, input);
+    runSearch(input.value || '');
+  }
 
-  overlaySearch.querySelectorAll('.modal-item').forEach(function (item) {
-    item.addEventListener('click', function () {
-      closeAllOverlays();
-      showToast('Mở: ' + item.querySelector('.title').textContent);
-    });
-  });
+  document.getElementById('btn-open-search').addEventListener('click', openSearch);
+  document.getElementById('mn-search').addEventListener('click', openSearch);
 
   /* ---- Command palette ---- */
 
+  /* Mở view rồi mở luôn editor tạo mới của module tương ứng. */
+  function createIn(viewId, moduleName) {
+    return function () {
+      navigateTo(viewId);
+      var mod = window[moduleName];
+      if (mod && mod.openEditor) setTimeout(function () { mod.openEditor(null); }, 0);
+    };
+  }
+
   var PALETTE_COMMANDS = [
-    { label: 'New Note', run: function () { navigateTo('notes'); } },
-    { label: "Daily Note", run: function () { navigateTo('daily-notes'); } },
-    { label: 'New Task', run: function () { navigateTo('tasks'); } },
-    { label: 'New Project', run: function () { navigateTo('projects'); } },
-    { label: 'New Troubleshooting', run: function () { navigateTo('troubleshooting'); } },
-    { label: 'New Snippet', run: function () { navigateTo('snippets'); } },
-    { label: 'New Command', run: function () { navigateTo('command-center'); } },
-    { label: 'Search', run: function () { openOverlay(overlaySearch, document.getElementById('search-input')); } },
+    { label: 'New Note', run: createIn('notes', 'VNoteNotes') },
+    { label: 'Daily Note', run: function () { navigateTo('daily-notes'); createDailyNote(); } },
+    { label: 'New Task', run: createIn('tasks', 'VNoteTasks') },
+    { label: 'New Project', run: createIn('projects', 'VNoteProjects') },
+    { label: 'New Troubleshooting', run: createIn('troubleshooting', 'VNoteTroubleshooting') },
+    { label: 'New Snippet', run: createIn('snippets', 'VNoteSnippets') },
+    { label: 'New Command', run: createIn('command-center', 'VNoteCommands') },
+    { label: 'Search', run: openSearch },
     { label: 'Dashboard', run: function () { navigateTo('dashboard'); } },
-    { label: 'Backup', run: function () { navigateTo('settings'); showToast('Backup Now (demo)'); } },
-    { label: 'Restore', run: function () { navigateTo('settings'); showToast('Restore (demo)'); } },
+    { label: 'Backup (JSON)', run: function () { navigateTo('settings'); doBackupJson(); } },
+    { label: 'Backup (ZIP)', run: function () { navigateTo('settings'); doBackupZip(); } },
+    { label: 'Restore / Import', run: function () { navigateTo('settings'); doOpenImport(); } },
     { label: 'Settings', run: function () { navigateTo('settings'); } },
     { label: 'Dark Mode', run: function () { setTheme('dark'); } },
     { label: 'Light Mode', run: function () { setTheme('light'); } }
@@ -430,7 +435,7 @@
 
     if (mod && !e.shiftKey && e.key.toLowerCase() === 'k') {
       e.preventDefault();
-      openOverlay(overlaySearch, document.getElementById('search-input'));
+      openSearch();
       return;
     }
     if (mod && !e.shiftKey && e.key.toLowerCase() === 's') {
@@ -595,23 +600,163 @@
   window.VNoteApp = { onDataChanged: onDataChanged, showToast: showToast, navigateTo: navigateTo, invalidateView: invalidateView };
 
   /* ---------------------------------------------------------------- */
-  /* Global search — live data                                        */
+  /* Global search — live data, all stores, filter syntax              */
   /* ---------------------------------------------------------------- */
+
+  var FILTER_KEYS = { tag: 'tag', tags: 'tag', category: 'category', cat: 'category', status: 'status', priority: 'priority', type: 'type', is: 'type' };
+
+  function parseQuery(raw) {
+    var q = { tag: [], category: [], status: [], priority: [], type: [], terms: [] };
+    var normalized = (raw || '').trim().replace(/\s*:\s*/g, ':');
+    if (!normalized) return q;
+    normalized.split(/\s+/).forEach(function (tok) {
+      if (!tok) return;
+      var idx = tok.indexOf(':');
+      if (idx > 0) {
+        var key = FILTER_KEYS[tok.slice(0, idx).toLowerCase()];
+        var val = tok.slice(idx + 1).toLowerCase();
+        if (key && val) { q[key].push(val); return; }
+      }
+      q.terms.push(tok.toLowerCase());
+    });
+    return q;
+  }
+
+  function searchItems() {
+    return Promise.all([
+      window.VNoteNotes.getAllActive(),
+      window.VNoteTasks.getAllActive(),
+      window.VNoteCommands.getAll(),
+      window.VNoteSnippets.getAll(),
+      window.VNoteTroubleshooting.getAll(),
+      window.VNoteProjects.getAll()
+    ]).then(function (res) {
+      var items = [];
+
+      res[0].forEach(function (n) {
+        items.push({
+          icon: '📝', type: 'note', meta: 'Note', title: n.title || '', tags: n.tags || [],
+          category: n.category || '', status: n.status || '', priority: n.priority || '',
+          body: n.content || '', at: n.updatedAt || n.createdAt || '',
+          open: function () { window.VNoteNotes.openEditor(n.id); }
+        });
+      });
+
+      res[1].forEach(function (t) {
+        items.push({
+          icon: '✅', type: 'task', meta: 'Task', title: t.title || '', tags: t.tags || [],
+          category: t.project || '', status: t.status || '', priority: t.priority || '',
+          body: (t.project || '') + ' ' + (t.dueDate || ''), at: t.updatedAt || t.createdAt || '',
+          open: function () { window.VNoteTasks.openEditor(t.id); }
+        });
+      });
+
+      res[2].forEach(function (c) {
+        items.push({
+          icon: '⌨️', type: 'command', meta: 'Command', title: c.name || '', tags: c.tags || [],
+          category: c.category || '', status: '', priority: c.danger || '',
+          body: (c.command || '') + ' ' + (c.description || '') + ' ' + (c.example || ''),
+          at: c.updatedAt || c.createdAt || '',
+          open: function () { window.VNoteCommands.openEditor(c.id); }
+        });
+      });
+
+      res[3].forEach(function (s) {
+        items.push({
+          icon: '🧩', type: 'snippet', meta: 'Snippet', title: s.name || '', tags: s.tags || [],
+          category: s.language || '', status: '', priority: '',
+          body: (s.code || '') + ' ' + (s.description || ''), at: s.updatedAt || s.createdAt || '',
+          open: function () { window.VNoteSnippets.openEditor(s.id); }
+        });
+      });
+
+      res[4].forEach(function (t) {
+        items.push({
+          icon: '🛠️', type: 'troubleshooting', meta: 'Troubleshooting', title: t.title || '', tags: t.tags || [],
+          category: t.system || '', status: t.status || '', priority: t.severity || '',
+          body: (t.content || '') + ' ' + (t.component || ''), at: t.updatedAt || t.createdAt || '',
+          open: function () { window.VNoteTroubleshooting.openEditor(t.id); }
+        });
+      });
+
+      res[5].forEach(function (p) {
+        items.push({
+          icon: '📁', type: 'project', meta: 'Project', title: p.name || '', tags: [],
+          category: '', status: p.status || '', priority: '',
+          body: p.description || '', at: p.updatedAt || p.createdAt || '',
+          open: function () { window.VNoteProjects.openEditor(p.id); }
+        });
+      });
+
+      return items;
+    });
+  }
+
+  function matchesFilters(item, q) {
+    function anyOf(values, target) {
+      if (!values.length) return true;
+      var t = String(target || '').toLowerCase();
+      return values.some(function (v) { return t === v || t.indexOf(v) !== -1; });
+    }
+    if (q.tag.length) {
+      var tags = (item.tags || []).map(function (t) { return String(t).toLowerCase(); });
+      var ok = q.tag.every(function (v) {
+        return tags.some(function (t) { return t === v || t.indexOf(v) !== -1; });
+      });
+      if (!ok) return false;
+    }
+    return anyOf(q.category, item.category) && anyOf(q.status, item.status) &&
+      anyOf(q.priority, item.priority) && anyOf(q.type, item.type);
+  }
+
+  /* Ranking per spec: exact title > title > tag > content */
+  function scoreItem(item, terms) {
+    if (!terms.length) return 1;
+    var title = String(item.title || '').toLowerCase();
+    var body = String(item.body || '').toLowerCase();
+    var tags = (item.tags || []).map(function (t) { return String(t).toLowerCase(); }).join(' ');
+    var total = 0;
+    for (var i = 0; i < terms.length; i++) {
+      var term = terms[i], s = 0;
+      if (title === term) s = 100;
+      else if (title.indexOf(term) === 0) s = 80;
+      else if (title.indexOf(term) !== -1) s = 60;
+      else if (tags.indexOf(term) !== -1) s = 40;
+      else if (body.indexOf(term) !== -1) s = 20;
+      if (!s) return 0;
+      total += s;
+    }
+    return total;
+  }
 
   function runSearch(query) {
     var resultsEl = document.getElementById('search-results');
-    var q = query.trim().toLowerCase();
-    Promise.all([window.VNoteNotes.getAllActive(), window.VNoteTasks.getAllActive()]).then(function (res) {
-      var notes = res[0].map(function (n) { return { icon: '📝', title: n.title, meta: 'Note', open: function () { window.VNoteNotes.openEditor(n.id); } }; });
-      var tasks = res[1].map(function (t) { return { icon: '✅', title: t.title, meta: 'Task', open: function () { window.VNoteTasks.openEditor(t.id); } }; });
-      var all = notes.concat(tasks);
-      var filtered = q ? all.filter(function (i) { return i.title.toLowerCase().indexOf(q) !== -1; }) : all.slice(0, 8);
+    var q = parseQuery(query);
+    var hasQuery = !!(q.terms.length || q.tag.length || q.category.length || q.status.length || q.priority.length || q.type.length);
+
+    return searchItems().then(function (items) {
+      var scored = [];
+      items.forEach(function (item) {
+        if (!matchesFilters(item, q)) return;
+        var s = scoreItem(item, q.terms);
+        if (!s) return;
+        scored.push({ item: item, score: s });
+      });
+
+      scored.sort(function (a, b) {
+        if (b.score !== a.score) return b.score - a.score;
+        return String(b.item.at).localeCompare(String(a.item.at));
+      });
+
+      var filtered = scored.map(function (r) { return r.item; });
+      if (!hasQuery) filtered = filtered.slice(0, 8);
 
       if (!filtered.length) {
         resultsEl.innerHTML = '<div class="modal-empty">Không tìm thấy kết quả</div>';
         return;
       }
-      resultsEl.innerHTML = filtered.slice(0, 20).map(function (item, i) {
+      filtered = filtered.slice(0, 20);
+      resultsEl.innerHTML = filtered.map(function (item, i) {
         return '<div class="modal-item" data-idx="' + i + '"><span>' + item.icon + '</span><span class="title">' +
           window.VNoteUtil.escapeHtml(item.title) + '</span><span class="item-meta">' + item.meta + '</span></div>';
       }).join('');
@@ -625,23 +770,28 @@
     runSearch(e.target.value);
   }, 120));
 
-  document.getElementById('btn-open-search').addEventListener('click', function () { runSearch(''); });
-  document.getElementById('mn-search').addEventListener('click', function () { runSearch(''); });
+  document.getElementById('search-input').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') {
+      var first = document.querySelector('#search-results .modal-item');
+      if (first) first.click();
+    }
+  });
+
 
   /* ---------------------------------------------------------------- */
   /* Settings — export / import / demo data                            */
   /* ---------------------------------------------------------------- */
 
-  document.getElementById('btn-backup-now').addEventListener('click', function () {
-    window.VNoteDB.exportAll().then(function (dump) {
+  function doBackupJson() {
+    return window.VNoteDB.exportAll().then(function (dump) {
       var stamp = new Date().toISOString().replace(/[:T]/g, '-').slice(0, 19);
       window.VNoteUtil.downloadText('vnote_backup_' + stamp + '.json', JSON.stringify(dump, null, 2));
       showToast('Đã tạo file backup');
     });
-  });
+  }
 
-  document.getElementById('btn-backup-zip').addEventListener('click', function () {
-    Promise.all([window.VNoteDB.exportAll(), window.VNoteNotes.getAllActive()]).then(function (res) {
+  function doBackupZip() {
+    return Promise.all([window.VNoteDB.exportAll(), window.VNoteNotes.getAllActive()]).then(function (res) {
       var dump = res[0], notes = res[1];
       var encoder = new TextEncoder();
       var entries = [{ name: 'data.json', data: encoder.encode(JSON.stringify(dump, null, 2)) }];
@@ -658,11 +808,15 @@
       setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
       showToast('Đã tạo backup ZIP (data.json + notes/*.md)');
     });
-  });
+  }
 
-  document.getElementById('btn-import-file').addEventListener('click', function () {
+  function doOpenImport() {
     document.getElementById('input-import-file').click();
-  });
+  }
+
+  document.getElementById('btn-backup-now').addEventListener('click', doBackupJson);
+  document.getElementById('btn-backup-zip').addEventListener('click', doBackupZip);
+  document.getElementById('btn-import-file').addEventListener('click', doOpenImport);
 
   document.getElementById('input-import-file').addEventListener('change', function (e) {
     var file = e.target.files[0];
