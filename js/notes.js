@@ -100,9 +100,11 @@ window.VNoteNotes = (function () {
     favoriteBtn = document.getElementById('note-favorite-btn');
 
     if (categorySelect) {
+      var currentValue = categorySelect.value;
       var workNames = window.VNoteCategories ? window.VNoteCategories.getCached().map(function (c) { return c.name; }) : [];
       var allNames = ['General'].concat(workNames, ['Study']);
       categorySelect.innerHTML = allNames.map(function (c) { return '<option>' + U.escapeHtml(c) + '</option>'; }).join('');
+      if (currentValue && allNames.indexOf(currentValue) !== -1) categorySelect.value = currentValue;
     }
   }
 
