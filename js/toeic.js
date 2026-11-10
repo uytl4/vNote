@@ -31,22 +31,59 @@ window.VNoteToeic = (function () {
     p7: { label: 'Part 7 (147–200)', from: 147, to: 200, minutes: 55 }
   };
 
-  // Tests from the shared Google Drive folder. Only file ids are stored here;
+  // Tests from the shared Google Drive folders. Only file ids are stored here;
   // the content stays in Drive and is shown through Drive's own viewer.
-  var DRIVE_FOLDER = 'https://drive.google.com/drive/folders/1raFiG1EglJBeBOeR-ZOHSB0HaBobZcO7';
+  // Fields: set, n (test number), drive (PDF id), keyImg (answer-key image id),
+  // full (PDF also contains the Listening part, so Reading starts mid-file).
+  var SETS = {
+    'ETS 2024': 'https://drive.google.com/drive/folders/1raFiG1EglJBeBOeR-ZOHSB0HaBobZcO7',
+    'ETS 2023': 'https://drive.google.com/drive/folders/1sQOQVt2ZERpOyAK-VTG_VTJjsuCti8UB',
+    'ETS 2022': 'https://drive.google.com/drive/folders/1NQBarMKQBfQYgl3jYpfMMTE-6rQJQ1xS'
+  };
+  var NOTE_FULL = 'File gồm cả Listening — cuộn xuống trang READING TEST (Part 5, câu 101) để bắt đầu.';
   var BUILTIN = [
-    ['1Ui8fHZggVXv9O4qwykCmcm_Cnef2Rxfz', 'ETS 2024 · Test 1 RC'],
-    ['1wuXjH-Xjeo4Z5FCJ_QUpRbJjqllXYoYR', 'ETS 2024 · Test 2 RC'],
-    ['1DNq75hm_RmMALqOgVoSm4lgEt60Nngix', 'ETS 2024 · Test 3 RC'],
-    ['1B1178RLdo5eqT-y_BGmsY3eAmUnO6PAN', 'ETS 2024 · Test 4 RC'],
-    ['1V6CmirhNgZt7_kduLNs5tRwCf_THoGm6', 'ETS 2024 · Test 5 RC'],
-    ['1OAeVzg8fp320VvPD4VrhMTMPwagzcLS_', 'ETS 2024 · Test 6 RC'],
-    ['1a-lCLQuLKyIQDa6W3Xx0qpa-6OvjP9JN', 'ETS 2024 · Test 7 RC'],
-    ['1QKruG4-ffEOJWFtSOFz8evuZ1oZ_vdN7', 'ETS 2024 · Test 8 RC'],
-    ['1eVg-f7xZttTjl6XYDOaLE-pBuN9NDTqV', 'ETS 2024 · Test 9 RC'],
-    ['1BMPqGApam4oCCbgk-li0Wx-dm2qODrLb', 'ETS 2024 · Test 10 RC'],
-    ['1cdubYVE5vl2_nRuaqggT0MwXS4s86PsG', 'ETS 2024 · Reading (sách đầy đủ)', 'Sách gồm nhiều đề — cuộn PDF tới đề bạn muốn làm.']
+    { set: 'ETS 2024', n: 1, drive: '1Ui8fHZggVXv9O4qwykCmcm_Cnef2Rxfz' },
+    { set: 'ETS 2024', n: 2, drive: '1wuXjH-Xjeo4Z5FCJ_QUpRbJjqllXYoYR' },
+    { set: 'ETS 2024', n: 3, drive: '1DNq75hm_RmMALqOgVoSm4lgEt60Nngix' },
+    { set: 'ETS 2024', n: 4, drive: '1B1178RLdo5eqT-y_BGmsY3eAmUnO6PAN' },
+    { set: 'ETS 2024', n: 5, drive: '1V6CmirhNgZt7_kduLNs5tRwCf_THoGm6' },
+    { set: 'ETS 2024', n: 6, drive: '1OAeVzg8fp320VvPD4VrhMTMPwagzcLS_' },
+    { set: 'ETS 2024', n: 7, drive: '1a-lCLQuLKyIQDa6W3Xx0qpa-6OvjP9JN' },
+    { set: 'ETS 2024', n: 8, drive: '1QKruG4-ffEOJWFtSOFz8evuZ1oZ_vdN7' },
+    { set: 'ETS 2024', n: 9, drive: '1eVg-f7xZttTjl6XYDOaLE-pBuN9NDTqV' },
+    { set: 'ETS 2024', n: 10, drive: '1BMPqGApam4oCCbgk-li0Wx-dm2qODrLb' },
+    { set: 'ETS 2024', name: 'ETS 2024 · Reading (sách đầy đủ)', drive: '1cdubYVE5vl2_nRuaqggT0MwXS4s86PsG', note: 'Sách gồm nhiều đề — cuộn PDF tới đề bạn muốn làm.' },
+
+    { set: 'ETS 2023', n: 1, drive: '16qYVEiNRuEdDWgRvErY3BUF1yXLaUOHJ', keyImg: '1r14gNAzuF0-HlQCBu4MY4OaTgdR66XNS', full: true },
+    { set: 'ETS 2023', n: 2, drive: '1uNvDZNGXybnoTWJUN3MmueemHA9eoZTW', keyImg: '1vCeaele6Euh-GZpBj0QHX726S8y0hl5A', full: true },
+    { set: 'ETS 2023', n: 3, drive: '1jqIJ6J19sOUhTqnwBCdXnd3ei2FQccoo', keyImg: '15aNFON3oyYUN4V19Y7AitTwOHXErHjxr', full: true },
+    { set: 'ETS 2023', n: 4, drive: '1YPMKKy-1V-Yxkjg6WL3vx_UhLjCd2KhV', keyImg: '1RjsOz0XtzpJEfxXi-7xjhHRbeOGwajN1', full: true },
+    { set: 'ETS 2023', n: 5, drive: '1dICFpFwi8k0vJk59Z8Hgafkaeqf2TkmY', keyImg: '1WKZ9QwP3Cr-YeHoBrPSOEnWYfZbQ84FS', full: true },
+    { set: 'ETS 2023', n: 6, drive: '1AKXbMgUoQW7D9tHrdoTaMMEc4r6d_eGD', keyImg: '1qHEZnDm3ibX3FpCsFHj4mcbEc32z_hal', full: true },
+    { set: 'ETS 2023', n: 7, drive: '1k0X_UVYumKQ9qx-nqVByaRrq0ChSn6iL', keyImg: '1Fl0rtzRnatF58Mlit0Q6rf38eDjKtAFf', full: true },
+    { set: 'ETS 2023', n: 8, drive: '1Ax_mJh6K5laajGL5HX6H9L2GLHVmi4qZ', keyImg: '1daAy5ZCascaJ8qg70OodpaWwWfyQCey8', full: true },
+    { set: 'ETS 2023', n: 9, drive: '1FP0rSz2HACFibmW3ifLRSGnXT_tz8Wj3', keyImg: '1o7eDTGPj15fY5QAbpI7LM3Qt4NKzdpXa', full: true },
+    { set: 'ETS 2023', n: 10, drive: '1gMaMkE9iKG1Kqckyw7lHv9ZyknUzLz90', keyImg: '1uDw2ow5rcsEJuwFohoXh3Uw4kIGgOdcP', full: true },
+    { set: 'ETS 2023', name: 'ETS 2023 · Reading (sách RC đầy đủ)', drive: '1YK36D4ZBmGvSkFFkM-z_x6Xu93MLNdAU', note: 'Sách RC gồm 10 đề — cuộn PDF tới đề muốn làm. Đáp án có sẵn ở từng đề lẻ phía trên.' },
+
+    { set: 'ETS 2022', n: 1, drive: '1Bylfa9G4C8foBpYKyJ6Ugun72e53BKd2', keyImg: '1jsxVGhph5p_OraUvHAJHaZKRnW5MCMae', full: true },
+    { set: 'ETS 2022', n: 2, drive: '1WJNUPjXAlN-0LV0MtLh2nue3vDR7CIbh', keyImg: '1a1TUK4RHQNmoFTq9WkWNUzRgsO7wWyZo', full: true },
+    { set: 'ETS 2022', n: 3, drive: '17rMleDnz3g3nM4UPV4tCn-EPa-8ympDd', keyImg: '12UtSGzhgSOwQvTvf6XvUgIkxXTVJRgeQ', full: true },
+    { set: 'ETS 2022', n: 4, drive: '1De4e8lGtyHQ9HWM8nuh0NdBDCr51Gl-8', keyImg: '1sNiRk2Lt5yiiwOF88S3OxdBiAbl9FiFa', full: true },
+    { set: 'ETS 2022', n: 5, drive: '1z7NtB6xCsC6y7w7hYGhsRJXlyAI9gq1h', keyImg: '1yPp5kf2_h8ZR52VL9xnYt69ZdSYlJBkz', full: true },
+    { set: 'ETS 2022', n: 6, drive: '164s_IPua99RblDO1ETEHTgbKQk2vQax9', keyImg: '1rJkcW1_JgQjOZIba3PdGtbmW_taz0-iw', full: true },
+    { set: 'ETS 2022', n: 7, drive: '1sbYbfLDm56O5gsw7TE-G-H5igIAJbCC1', keyImg: '1LvwDP9lSwWZoItillUseaBXmnWiLx0B8', full: true },
+    { set: 'ETS 2022', n: 8, drive: '13l51L2M3n5rfIiCahiwpmWNyjrBMYNl6', keyImg: '1lyWJokzMoPD7f8o7CnQTspzg-fPRxqYu', full: true },
+    { set: 'ETS 2022', n: 9, drive: '1wzqbS7gMBwyhh_7eDN6X2XoWixLrfj_z', keyImg: '1fJgoMnTebmxxNcsl331s_PzR7DUMYb68', full: true },
+    { set: 'ETS 2022', n: 10, drive: '11lu4XEDgn8W9ETUap3qk9_W3T-GjiK5L', keyImg: '1kKEHwpyUbp5Ii8uVrfIc7RhgzR04fZfr', full: true }
   ];
+
+  function bundledKey(b) {
+    var str = b.n && window.VNoteToeicKeys && window.VNoteToeicKeys[b.set.replace('ETS ', '') + '-' + b.n];
+    var key = {};
+    if (str) for (var i = 0; i < str.length && i < 100; i++) key[101 + i] = str[i];
+    return key;
+  }
 
   // Approximate raw→scaled conversion for the Reading section (estimate only;
   // the real ETS conversion varies per test form).
@@ -180,16 +217,30 @@ window.VNoteToeic = (function () {
   function ensureBuiltins() {
     return DB.getAll(TESTS).then(function (rows) {
       var have = {};
-      rows.forEach(function (r) { have[r.id] = true; });
+      rows.forEach(function (r) { have[r.id] = r; });
       var now = new Date().toISOString();
-      var writes = BUILTIN.map(function (b, i) {
-        var id = 'drive-' + b[0];
-        if (have[id]) return null;
-        return DB.put(TESTS, {
-          id: id, name: b[1], driveId: b[0], note: b[2] || '', builtin: true,
-          order: i, answerKey: {}, createdAt: now, updatedAt: now
-        });
-      }).filter(Boolean);
+      var writes = [];
+      BUILTIN.forEach(function (b, i) {
+        var id = 'drive-' + b.drive;
+        var meta = {
+          name: b.name || (b.set + ' · Test ' + b.n), set: b.set, driveId: b.drive, keyImg: b.keyImg || null,
+          note: b.note || (b.full ? NOTE_FULL : ''), builtin: true, order: i
+        };
+        var row = have[id];
+        if (!row) {
+          var key = bundledKey(b);
+          writes.push(DB.put(TESTS, Object.assign({ id: id, answerKey: key, keySource: keyCount({ answerKey: key }) ? 'bundled' : null, createdAt: now, updatedAt: now }, meta)));
+          return;
+        }
+        // Refresh catalog metadata; fill in a bundled key only if the user has none.
+        var changed = Object.keys(meta).some(function (k) { return row[k] !== meta[k]; });
+        Object.assign(row, meta);
+        if (!keyCount(row)) {
+          var k2 = bundledKey(b);
+          if (keyCount({ answerKey: k2 })) { row.answerKey = k2; row.keySource = 'bundled'; changed = true; }
+        }
+        if (changed) writes.push(DB.put(TESTS, row));
+      });
       return Promise.all(writes);
     });
   }
@@ -241,7 +292,7 @@ window.VNoteToeic = (function () {
           '<button class="btn btn-sm" data-toeic-discard="' + a.id + '">Bỏ</button></div></div>';
       }).join('');
 
-      var cards = data.tests.map(function (t) {
+      function card(t) {
         var attempts = done.filter(function (a) { return a.testId === t.id; });
         var best = null;
         attempts.forEach(function (a) {
@@ -249,7 +300,9 @@ window.VNoteToeic = (function () {
           if (sc.keyed && (best === null || sc.correct / sc.keyed > best.ratio)) best = { ratio: sc.correct / sc.keyed, text: sc.correct + '/' + sc.keyed };
         });
         var kc = keyCount(t);
-        var keyBadge = kc ? '<span class="badge badge-success">✓ Đáp án ' + kc + ' câu</span>' : '<span class="badge badge-warning">Chưa có đáp án</span>';
+        var keyBadge = kc
+          ? '<span class="badge badge-success">✓ Đáp án ' + kc + ' câu' + (t.keySource === 'bundled' ? ' (có sẵn)' : '') + '</span>'
+          : '<span class="badge badge-warning">Chưa có đáp án</span>';
         var src = t.driveId ? '<span class="badge badge-accent">Google Drive</span>' : '<span class="badge">PDF máy</span>';
         var modeOpts = Object.keys(MODES).map(function (k) { return '<option value="' + k + '">' + MODES[k].label + '</option>'; }).join('');
         var link = openUrl(t);
@@ -267,6 +320,22 @@ window.VNoteToeic = (function () {
           (link ? '<a class="toeic-link" href="' + link + '" target="_blank" rel="noopener">↗ Mở PDF</a>' : '') +
           (t.builtin ? '' : '<a class="toeic-link toeic-link-danger" data-toeic-delete="' + t.id + '">🗑 Xoá</a>') +
           '</div></div>';
+      }
+
+      // Group cards by set (ETS 2024 / 2023 / 2022 / user-added), keeping catalog order.
+      var groups = [], groupOf = {};
+      data.tests.forEach(function (t) {
+        var g = t.builtin ? (t.set || 'ETS 2024') : 'Đề tự thêm';
+        if (!groupOf[g]) { groupOf[g] = []; groups.push(g); }
+        groupOf[g].push(t);
+      });
+      var cards = groups.map(function (g) {
+        var tests = groupOf[g];
+        var keyed = tests.filter(function (t) { return keyCount(t) >= 100; }).length;
+        var src = SETS[g] ? ' · <a class="toeic-link" href="' + SETS[g] + '" target="_blank" rel="noopener">thư mục Drive ↗</a>' : '';
+        return '<div class="toeic-set"><h3 class="toeic-set-title">' + U.escapeHtml(g) +
+          '<span class="toeic-muted toeic-small"> — ' + tests.length + ' mục, ' + keyed + ' có đủ đáp án' + src + '</span></h3>' +
+          '<div class="toeic-grid">' + tests.map(card).join('') + '</div></div>';
       }).join('');
 
       var historyRows = done.slice(0, 50).map(function (a) {
@@ -286,9 +355,9 @@ window.VNoteToeic = (function () {
         resumeHtml +
         '<div class="toeic-help card"><strong>Cách dùng:</strong> chọn đề → chọn phần thi → <em>Bắt đầu</em>. Đề hiển thị bên trái, phiếu trả lời bên phải. ' +
         'Phím tắt: <kbd>A</kbd>–<kbd>D</kbd> chọn đáp án, <kbd>↑</kbd>/<kbd>↓</kbd> chuyển câu, <kbd>F</kbd> đánh dấu. ' +
-        'Bài làm được lưu tự động — có thể thoát và làm tiếp. Bộ đề không kèm đáp án, hãy nhập đáp án (🔑) để chấm điểm; có thể nhập cả sau khi nộp bài. ' +
-        'Nguồn đề: <a href="' + DRIVE_FOLDER + '" target="_blank" rel="noopener">thư mục Google Drive</a>.</div>' +
-        '<div class="toeic-grid">' + cards + '</div>' +
+        'Bài làm được lưu tự động — có thể thoát và làm tiếp. ETS 2023 &amp; 2022 đã có sẵn đáp án Reading (chép từ ảnh đáp án trong Drive — nếu thấy sai, sửa ở 🔑). ' +
+        'ETS 2024 không kèm đáp án: nhập đáp án (🔑) để chấm, có thể nhập cả sau khi nộp bài.</div>' +
+        cards +
         '<h3 style="margin:24px 0 10px;">Lịch sử làm bài</h3>' +
         (historyRows
           ? '<table class="table"><thead><tr><th>Ngày</th><th>Đề</th><th>Phần</th><th>Kết quả</th><th>Thời gian</th><th></th></tr></thead><tbody>' + historyRows + '</tbody></table>'
@@ -574,6 +643,7 @@ window.VNoteToeic = (function () {
       '<div class="toolbar" style="margin:0;">' +
       '<button class="btn" id="toeic-back">← Danh sách đề</button>' +
       '<button class="btn" data-toeic-key="' + t.id + '">🔑 ' + (keyCount(t) ? 'Sửa đáp án' : 'Nhập đáp án') + '</button>' +
+      (t.keyImg ? '<a class="btn" href="https://drive.google.com/file/d/' + encodeURIComponent(t.keyImg) + '/view" target="_blank" rel="noopener">🖼 Ảnh đáp án</a>' : '') +
       '<button class="btn btn-primary" id="toeic-retry">↻ Làm lại</button></div></div>' +
       summary +
       examLayout(sheetHtml(true), bar);
@@ -593,6 +663,9 @@ window.VNoteToeic = (function () {
       el('toeic-key-title').textContent = '🔑 Đáp án · ' + t.name;
       el('toeic-key-text').value = keyToText(t.answerKey);
       el('toeic-key-start').value = '101';
+      var img = el('toeic-key-img');
+      img.hidden = !t.keyImg;
+      if (t.keyImg) img.href = 'https://drive.google.com/file/d/' + encodeURIComponent(t.keyImg) + '/view';
       updateKeyPreview();
       el('overlay-toeic-key').classList.add('open');
       setTimeout(function () { el('toeic-key-text').focus(); }, 0);
@@ -612,6 +685,7 @@ window.VNoteToeic = (function () {
     var key = parseKey(el('toeic-key-text').value, el('toeic-key-start').value);
     DB.get(TESTS, keyTestId).then(function (t) {
       t.answerKey = key;
+      t.keySource = 'user';
       t.updatedAt = new Date().toISOString();
       return DB.put(TESTS, t).then(function () {
         el('overlay-toeic-key').classList.remove('open');

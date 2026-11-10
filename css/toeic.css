@@ -12,6 +12,10 @@
   margin-bottom: 12px; border-left: 3px solid var(--warning);
 }
 
+.toeic-set { margin-bottom: 22px; }
+.toeic-set-title { margin: 0 0 10px; font-size: 15px; }
+.toeic-set-title span { font-weight: 400; }
+
 .toeic-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
