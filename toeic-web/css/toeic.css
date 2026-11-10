@@ -57,7 +57,7 @@
   height: calc(100vh - var(--topbar-h) - var(--statusbar-h) - 120px);
   min-height: 460px;
 }
-.toeic-pdf { position: relative; background: var(--bg-tertiary); border-right: 1px solid var(--border); }
+.toeic-pdf { position: relative; min-height: 0; overflow: hidden; background: var(--bg-tertiary); border-right: 1px solid var(--border); }
 .toeic-pdf iframe { width: 100%; height: 100%; border: 0; display: block; }
 .toeic-pdf-loading { padding: 24px; text-align: center; }
 .toeic-pdf-open {
@@ -117,10 +117,95 @@
 .toeic-nokey h3 { margin: 0 0 6px; }
 .toeic-nokey p { color: var(--text-secondary); margin: 0 0 12px; }
 
+/* ---- notices ---- */
+.toeic-offline { margin-bottom: 12px; border-left: 3px solid var(--warning); font-size: 12.5px; }
+.toeic-ainote {
+  font-size: 12.5px; margin: 0 0 14px; padding: 8px 12px; border-radius: var(--radius);
+  background: var(--accent-soft); color: var(--text);
+}
+.toeic-pdf-loading code { font-size: 11.5px; }
+
+/* ---- offline PDF viewer (js/pdfview.js) ---- */
+.pdfv { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+.pdfv-bar {
+  display: flex; align-items: center; gap: 4px; padding: 4px 8px;
+  background: var(--bg-secondary); border-bottom: 1px solid var(--border); flex-wrap: wrap;
+}
+.pdfv-btn {
+  min-width: 32px; height: 30px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+  background: var(--bg); color: var(--text); font-size: 16px; cursor: pointer; padding: 0 6px;
+}
+.pdfv-btn:hover { background: var(--bg-hover); }
+.pdfv-sep { width: 8px; }
+.pdfv-page { font-size: 12px; color: var(--text-secondary); display: inline-flex; align-items: center; gap: 4px; }
+.pdfv-input {
+  width: 52px; height: 28px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+  background: var(--bg); color: var(--text); text-align: center; font-size: 13px;
+}
+.pdfv-scroll { flex: 1; min-height: 0; overflow: auto; -webkit-overflow-scrolling: touch; background: var(--bg-tertiary); }
+.pdfv-pages { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 8px; min-width: min-content; }
+.pdfv-pageel { position: relative; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.18); flex: none; }
+.pdfv-canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.pdfv-num { position: absolute; top: 45%; left: 0; right: 0; text-align: center; color: #bbb; font-size: 22px; }
+.pdfv-msg { padding: 30px 16px; text-align: center; color: var(--text-secondary); }
+
+/* ---- phone layout: PDF full height, compact answer bar, slide-up sheet ---- */
+.toeic-mbar, .toeic-sheet-head { display: none; }
+
 @media (max-width: 900px) {
   .toeic-body { grid-template-columns: 1fr; height: auto; }
   .toeic-pdf { height: 62vh; border-right: 0; border-bottom: 1px solid var(--border); }
   .toeic-sheet { max-height: 60vh; }
   .toeic-q { gap: 8px; }
   .toeic-opt { width: 36px; height: 36px; }
+
+  .toeic-exam.is-exam .toeic-bar { gap: 8px; padding: 6px 10px; }
+  .toeic-exam.is-exam .toeic-bar-title { min-width: 0; flex-basis: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .toeic-exam.is-exam .toeic-timer { font-size: 16px; }
+  .toeic-exam.is-exam .toeic-pdf {
+    height: calc(100vh - var(--topbar-h) - 150px - env(safe-area-inset-bottom));
+    height: calc(100dvh - var(--topbar-h) - 150px - env(safe-area-inset-bottom));
+    border-bottom: 0;
+  }
+  .toeic-exam.is-exam .toeic-sheet {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 60;
+    max-height: 72vh; max-height: 72dvh;
+    background: var(--bg); border-top: 1px solid var(--border);
+    border-radius: 14px 14px 0 0; box-shadow: 0 -8px 24px rgba(0,0,0,.25);
+    padding-bottom: calc(64px + env(safe-area-inset-bottom));
+    transform: translateY(105%); transition: transform .22s ease;
+  }
+  .toeic-exam.is-exam.sheet-open .toeic-sheet { transform: none; }
+  .toeic-exam.is-exam .toeic-sheet-head {
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 2; padding: 10px 12px; background: var(--bg);
+    border-bottom: 1px solid var(--border);
+  }
+  .toeic-exam.is-exam .toeic-part-title { top: 49px; }
+
+  .toeic-mbar {
+    display: flex; align-items: center; gap: 6px; justify-content: center;
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 70;
+    padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+    background: var(--bg-secondary); border-top: 1px solid var(--border);
+    box-shadow: 0 -2px 10px rgba(0,0,0,.08);
+  }
+  .toeic-mq { min-width: 34px; text-align: center; font-family: var(--font-mono); font-weight: 700; font-size: 14px; }
+  .toeic-mopt, .toeic-mbtn {
+    height: 42px; border-radius: 21px; border: 1.5px solid var(--border);
+    background: var(--bg); color: var(--text); font-weight: 700; font-size: 15px; cursor: pointer;
+    touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+  }
+  .toeic-mopt { width: 42px; }
+  .toeic-mbtn { min-width: 34px; padding: 0 8px; font-size: 18px; border-radius: 10px; }
+  .toeic-mopt.selected { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .toeic-mflag.on { color: var(--warning); border-color: var(--warning); }
+  .toeic-msheet { font-size: 16px; }
+  .page:has(.toeic-exam.is-exam) { padding-bottom: calc(70px + env(safe-area-inset-bottom)); }
 }
+
+@media (max-width: 380px) {
+  .toeic-mopt { width: 38px; height: 38px; }
+  .toeic-mbtn { min-width: 30px; height: 38px; padding: 0 5px; }
+}
+.table-wrap { overflow-x: auto; }

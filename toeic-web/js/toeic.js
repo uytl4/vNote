@@ -33,7 +33,8 @@ window.VNoteToeic = (function () {
 
   // Tests from the shared Google Drive folders. Only file ids are stored here;
   // the content stays in Drive and is shown through Drive's own viewer.
-  // Fields: set, n (test number), drive (PDF id), keyImg (answer-key image id),
+  // Fields: file (original Drive file name, used to match PDFs the user attaches offline),
+  // set, n (test number), drive (PDF id), keyImg (answer-key image id),
   // full (PDF also contains the Listening part, so Reading starts mid-file).
   var SETS = {
     'ETS 2024': 'https://drive.google.com/drive/folders/1raFiG1EglJBeBOeR-ZOHSB0HaBobZcO7',
@@ -42,41 +43,46 @@ window.VNoteToeic = (function () {
   };
   var NOTE_FULL = 'File gồm cả Listening — cuộn xuống trang READING TEST (Part 5, câu 101) để bắt đầu.';
   var BUILTIN = [
-    { set: 'ETS 2024', n: 1, drive: '1Ui8fHZggVXv9O4qwykCmcm_Cnef2Rxfz' },
-    { set: 'ETS 2024', n: 2, drive: '1wuXjH-Xjeo4Z5FCJ_QUpRbJjqllXYoYR' },
-    { set: 'ETS 2024', n: 3, drive: '1DNq75hm_RmMALqOgVoSm4lgEt60Nngix' },
-    { set: 'ETS 2024', n: 4, drive: '1B1178RLdo5eqT-y_BGmsY3eAmUnO6PAN' },
-    { set: 'ETS 2024', n: 5, drive: '1V6CmirhNgZt7_kduLNs5tRwCf_THoGm6' },
-    { set: 'ETS 2024', n: 6, drive: '1OAeVzg8fp320VvPD4VrhMTMPwagzcLS_' },
-    { set: 'ETS 2024', n: 7, drive: '1a-lCLQuLKyIQDa6W3Xx0qpa-6OvjP9JN' },
-    { set: 'ETS 2024', n: 8, drive: '1QKruG4-ffEOJWFtSOFz8evuZ1oZ_vdN7' },
-    { set: 'ETS 2024', n: 9, drive: '1eVg-f7xZttTjl6XYDOaLE-pBuN9NDTqV' },
-    { set: 'ETS 2024', n: 10, drive: '1BMPqGApam4oCCbgk-li0Wx-dm2qODrLb' },
-    { set: 'ETS 2024', name: 'ETS 2024 · Reading (sách đầy đủ)', drive: '1cdubYVE5vl2_nRuaqggT0MwXS4s86PsG', note: 'Sách gồm nhiều đề — cuộn PDF tới đề bạn muốn làm.' },
+    { file: 'TEST 1 RC (1).pdf', set: 'ETS 2024', n: 1, drive: '1Ui8fHZggVXv9O4qwykCmcm_Cnef2Rxfz' },
+    { file: 'TEST 2 RC (1).pdf', set: 'ETS 2024', n: 2, drive: '1wuXjH-Xjeo4Z5FCJ_QUpRbJjqllXYoYR' },
+    { file: 'TEST 3 RC (1).pdf', set: 'ETS 2024', n: 3, drive: '1DNq75hm_RmMALqOgVoSm4lgEt60Nngix' },
+    { file: 'TEST 4 RC (1).pdf', set: 'ETS 2024', n: 4, drive: '1B1178RLdo5eqT-y_BGmsY3eAmUnO6PAN' },
+    { file: 'TEST 5 RC (1).pdf', set: 'ETS 2024', n: 5, drive: '1V6CmirhNgZt7_kduLNs5tRwCf_THoGm6' },
+    { file: 'TEST 6 RC (1).pdf', set: 'ETS 2024', n: 6, drive: '1OAeVzg8fp320VvPD4VrhMTMPwagzcLS_' },
+    { file: 'TEST 7 RC (1).pdf', set: 'ETS 2024', n: 7, drive: '1a-lCLQuLKyIQDa6W3Xx0qpa-6OvjP9JN' },
+    { file: 'TEST 8 RC (1).pdf', set: 'ETS 2024', n: 8, drive: '1QKruG4-ffEOJWFtSOFz8evuZ1oZ_vdN7' },
+    { file: 'TEST 9 RC (1).pdf', set: 'ETS 2024', n: 9, drive: '1eVg-f7xZttTjl6XYDOaLE-pBuN9NDTqV' },
+    { file: 'TEST 10 RC (1).pdf', set: 'ETS 2024', n: 10, drive: '1BMPqGApam4oCCbgk-li0Wx-dm2qODrLb' },
+    { file: 'ETS 2024 - READING.pdf', set: 'ETS 2024', name: 'ETS 2024 · Reading (sách đầy đủ)', drive: '1cdubYVE5vl2_nRuaqggT0MwXS4s86PsG', note: 'Sách gồm nhiều đề — cuộn PDF tới đề bạn muốn làm.' },
 
-    { set: 'ETS 2023', n: 1, drive: '16qYVEiNRuEdDWgRvErY3BUF1yXLaUOHJ', keyImg: '1r14gNAzuF0-HlQCBu4MY4OaTgdR66XNS', full: true },
-    { set: 'ETS 2023', n: 2, drive: '1uNvDZNGXybnoTWJUN3MmueemHA9eoZTW', keyImg: '1vCeaele6Euh-GZpBj0QHX726S8y0hl5A', full: true },
-    { set: 'ETS 2023', n: 3, drive: '1jqIJ6J19sOUhTqnwBCdXnd3ei2FQccoo', keyImg: '15aNFON3oyYUN4V19Y7AitTwOHXErHjxr', full: true },
-    { set: 'ETS 2023', n: 4, drive: '1YPMKKy-1V-Yxkjg6WL3vx_UhLjCd2KhV', keyImg: '1RjsOz0XtzpJEfxXi-7xjhHRbeOGwajN1', full: true },
-    { set: 'ETS 2023', n: 5, drive: '1dICFpFwi8k0vJk59Z8Hgafkaeqf2TkmY', keyImg: '1WKZ9QwP3Cr-YeHoBrPSOEnWYfZbQ84FS', full: true },
-    { set: 'ETS 2023', n: 6, drive: '1AKXbMgUoQW7D9tHrdoTaMMEc4r6d_eGD', keyImg: '1qHEZnDm3ibX3FpCsFHj4mcbEc32z_hal', full: true },
-    { set: 'ETS 2023', n: 7, drive: '1k0X_UVYumKQ9qx-nqVByaRrq0ChSn6iL', keyImg: '1Fl0rtzRnatF58Mlit0Q6rf38eDjKtAFf', full: true },
-    { set: 'ETS 2023', n: 8, drive: '1Ax_mJh6K5laajGL5HX6H9L2GLHVmi4qZ', keyImg: '1daAy5ZCascaJ8qg70OodpaWwWfyQCey8', full: true },
-    { set: 'ETS 2023', n: 9, drive: '1FP0rSz2HACFibmW3ifLRSGnXT_tz8Wj3', keyImg: '1o7eDTGPj15fY5QAbpI7LM3Qt4NKzdpXa', full: true },
-    { set: 'ETS 2023', n: 10, drive: '1gMaMkE9iKG1Kqckyw7lHv9ZyknUzLz90', keyImg: '1uDw2ow5rcsEJuwFohoXh3Uw4kIGgOdcP', full: true },
-    { set: 'ETS 2023', name: 'ETS 2023 · Reading (sách RC đầy đủ)', drive: '1YK36D4ZBmGvSkFFkM-z_x6Xu93MLNdAU', note: 'Sách RC gồm 10 đề — cuộn PDF tới đề muốn làm. Đáp án có sẵn ở từng đề lẻ phía trên.' },
+    { file: 'ETS 2023 Test 1.pdf', set: 'ETS 2023', n: 1, drive: '16qYVEiNRuEdDWgRvErY3BUF1yXLaUOHJ', keyImg: '1r14gNAzuF0-HlQCBu4MY4OaTgdR66XNS', full: true },
+    { file: 'Test 02 ETS 2023 Reading _ Listening.pdf', set: 'ETS 2023', n: 2, drive: '1uNvDZNGXybnoTWJUN3MmueemHA9eoZTW', keyImg: '1vCeaele6Euh-GZpBj0QHX726S8y0hl5A', full: true },
+    { file: 'TEST 3.pdf', set: 'ETS 2023', n: 3, drive: '1jqIJ6J19sOUhTqnwBCdXnd3ei2FQccoo', keyImg: '15aNFON3oyYUN4V19Y7AitTwOHXErHjxr', full: true },
+    { file: 'TEST 4.pdf', set: 'ETS 2023', n: 4, drive: '1YPMKKy-1V-Yxkjg6WL3vx_UhLjCd2KhV', keyImg: '1RjsOz0XtzpJEfxXi-7xjhHRbeOGwajN1', full: true },
+    { file: 'TEST 5.pdf', set: 'ETS 2023', n: 5, drive: '1dICFpFwi8k0vJk59Z8Hgafkaeqf2TkmY', keyImg: '1WKZ9QwP3Cr-YeHoBrPSOEnWYfZbQ84FS', full: true },
+    { file: 'TEST 6.pdf', set: 'ETS 2023', n: 6, drive: '1AKXbMgUoQW7D9tHrdoTaMMEc4r6d_eGD', keyImg: '1qHEZnDm3ibX3FpCsFHj4mcbEc32z_hal', full: true },
+    { file: 'TEST 7.pdf', set: 'ETS 2023', n: 7, drive: '1k0X_UVYumKQ9qx-nqVByaRrq0ChSn6iL', keyImg: '1Fl0rtzRnatF58Mlit0Q6rf38eDjKtAFf', full: true },
+    { file: 'TEST 8.pdf', set: 'ETS 2023', n: 8, drive: '1Ax_mJh6K5laajGL5HX6H9L2GLHVmi4qZ', keyImg: '1daAy5ZCascaJ8qg70OodpaWwWfyQCey8', full: true },
+    { file: 'TEST 9.pdf', set: 'ETS 2023', n: 9, drive: '1FP0rSz2HACFibmW3ifLRSGnXT_tz8Wj3', keyImg: '1o7eDTGPj15fY5QAbpI7LM3Qt4NKzdpXa', full: true },
+    { file: 'TEST 10.pdf', set: 'ETS 2023', n: 10, drive: '1gMaMkE9iKG1Kqckyw7lHv9ZyknUzLz90', keyImg: '1uDw2ow5rcsEJuwFohoXh3Uw4kIGgOdcP', full: true },
+    { file: 'ETS 2023 RC.pdf', set: 'ETS 2023', name: 'ETS 2023 · Reading (sách RC đầy đủ)', drive: '1YK36D4ZBmGvSkFFkM-z_x6Xu93MLNdAU', note: 'Sách RC gồm 10 đề — cuộn PDF tới đề muốn làm. Đáp án có sẵn ở từng đề lẻ phía trên.' },
 
-    { set: 'ETS 2022', n: 1, drive: '1Bylfa9G4C8foBpYKyJ6Ugun72e53BKd2', keyImg: '1jsxVGhph5p_OraUvHAJHaZKRnW5MCMae', full: true },
-    { set: 'ETS 2022', n: 2, drive: '1WJNUPjXAlN-0LV0MtLh2nue3vDR7CIbh', keyImg: '1a1TUK4RHQNmoFTq9WkWNUzRgsO7wWyZo', full: true },
-    { set: 'ETS 2022', n: 3, drive: '17rMleDnz3g3nM4UPV4tCn-EPa-8ympDd', keyImg: '12UtSGzhgSOwQvTvf6XvUgIkxXTVJRgeQ', full: true },
-    { set: 'ETS 2022', n: 4, drive: '1De4e8lGtyHQ9HWM8nuh0NdBDCr51Gl-8', keyImg: '1sNiRk2Lt5yiiwOF88S3OxdBiAbl9FiFa', full: true },
-    { set: 'ETS 2022', n: 5, drive: '1z7NtB6xCsC6y7w7hYGhsRJXlyAI9gq1h', keyImg: '1yPp5kf2_h8ZR52VL9xnYt69ZdSYlJBkz', full: true },
-    { set: 'ETS 2022', n: 6, drive: '164s_IPua99RblDO1ETEHTgbKQk2vQax9', keyImg: '1rJkcW1_JgQjOZIba3PdGtbmW_taz0-iw', full: true },
-    { set: 'ETS 2022', n: 7, drive: '1sbYbfLDm56O5gsw7TE-G-H5igIAJbCC1', keyImg: '1LvwDP9lSwWZoItillUseaBXmnWiLx0B8', full: true },
-    { set: 'ETS 2022', n: 8, drive: '13l51L2M3n5rfIiCahiwpmWNyjrBMYNl6', keyImg: '1lyWJokzMoPD7f8o7CnQTspzg-fPRxqYu', full: true },
-    { set: 'ETS 2022', n: 9, drive: '1wzqbS7gMBwyhh_7eDN6X2XoWixLrfj_z', keyImg: '1fJgoMnTebmxxNcsl331s_PzR7DUMYb68', full: true },
-    { set: 'ETS 2022', n: 10, drive: '11lu4XEDgn8W9ETUap3qk9_W3T-GjiK5L', keyImg: '1kKEHwpyUbp5Ii8uVrfIc7RhgzR04fZfr', full: true }
+    { file: 'ETS 2022 Test 1.pdf', set: 'ETS 2022', n: 1, drive: '1Bylfa9G4C8foBpYKyJ6Ugun72e53BKd2', keyImg: '1jsxVGhph5p_OraUvHAJHaZKRnW5MCMae', full: true },
+    { file: 'ETS 2022 Test 2.pdf', set: 'ETS 2022', n: 2, drive: '1WJNUPjXAlN-0LV0MtLh2nue3vDR7CIbh', keyImg: '1a1TUK4RHQNmoFTq9WkWNUzRgsO7wWyZo', full: true },
+    { file: 'ETS 2022 Test 3.pdf', set: 'ETS 2022', n: 3, drive: '17rMleDnz3g3nM4UPV4tCn-EPa-8ympDd', keyImg: '12UtSGzhgSOwQvTvf6XvUgIkxXTVJRgeQ', full: true },
+    { file: 'ETS 2022 Test 4.pdf', set: 'ETS 2022', n: 4, drive: '1De4e8lGtyHQ9HWM8nuh0NdBDCr51Gl-8', keyImg: '1sNiRk2Lt5yiiwOF88S3OxdBiAbl9FiFa', full: true },
+    { file: 'ETS 2022 Test 5.pdf', set: 'ETS 2022', n: 5, drive: '1z7NtB6xCsC6y7w7hYGhsRJXlyAI9gq1h', keyImg: '1yPp5kf2_h8ZR52VL9xnYt69ZdSYlJBkz', full: true },
+    { file: 'ETS 2022 Test 6.pdf', set: 'ETS 2022', n: 6, drive: '164s_IPua99RblDO1ETEHTgbKQk2vQax9', keyImg: '1rJkcW1_JgQjOZIba3PdGtbmW_taz0-iw', full: true },
+    { file: 'ETS 2022 Test 7.pdf', set: 'ETS 2022', n: 7, drive: '1sbYbfLDm56O5gsw7TE-G-H5igIAJbCC1', keyImg: '1LvwDP9lSwWZoItillUseaBXmnWiLx0B8', full: true },
+    { file: 'ETS 2022 Test 8.pdf', set: 'ETS 2022', n: 8, drive: '13l51L2M3n5rfIiCahiwpmWNyjrBMYNl6', keyImg: '1lyWJokzMoPD7f8o7CnQTspzg-fPRxqYu', full: true },
+    { file: 'ETS 2022 Test 9.pdf', set: 'ETS 2022', n: 9, drive: '1wzqbS7gMBwyhh_7eDN6X2XoWixLrfj_z', keyImg: '1fJgoMnTebmxxNcsl331s_PzR7DUMYb68', full: true },
+    { file: 'ETS 2022 Test 10.pdf', set: 'ETS 2022', n: 10, drive: '11lu4XEDgn8W9ETUap3qk9_W3T-GjiK5L', keyImg: '1kKEHwpyUbp5Ii8uVrfIc7RhgzR04fZfr', full: true }
   ];
+
+  function keySourceOf(b) {
+    var src = window.VNoteToeicKeySource && window.VNoteToeicKeySource[b.set.replace('ETS ', '')];
+    return src || 'bundled';
+  }
 
   function bundledKey(b) {
     var str = b.n && window.VNoteToeicKeys && window.VNoteToeicKeys[b.set.replace('ETS ', '') + '-' + b.n];
@@ -97,7 +103,8 @@ window.VNoteToeic = (function () {
     timer: null,
     tickCount: 0,
     reviewFilter: 'all',
-    objectUrls: {}
+    viewer: null,
+    pageSaveTimer: null
   };
 
   /* ---------------------------------------------------------------- */
@@ -192,19 +199,11 @@ window.VNoteToeic = (function () {
     return res;
   }
 
-  function pdfSrc(test) {
-    if (test.driveId) return Promise.resolve('https://drive.google.com/file/d/' + encodeURIComponent(test.driveId) + '/preview');
-    if (test.fileId) {
-      if (state.objectUrls[test.fileId]) return Promise.resolve(state.objectUrls[test.fileId]);
-      return DB.get(FILES, test.fileId).then(function (row) {
-        if (!row || !row.blob) return null;
-        var url = URL.createObjectURL(row.blob);
-        state.objectUrls[test.fileId] = url;
-        return url;
-      });
-    }
-    return Promise.resolve(null);
+  function driveSrc(test) {
+    return 'https://drive.google.com/file/d/' + encodeURIComponent(test.driveId) + '/preview';
   }
+
+  function isOnline() { return navigator.onLine !== false; }
 
   function openUrl(test) {
     return test.driveId ? 'https://drive.google.com/file/d/' + encodeURIComponent(test.driveId) + '/view' : null;
@@ -223,13 +222,13 @@ window.VNoteToeic = (function () {
       BUILTIN.forEach(function (b, i) {
         var id = 'drive-' + b.drive;
         var meta = {
-          name: b.name || (b.set + ' · Test ' + b.n), set: b.set, driveId: b.drive, keyImg: b.keyImg || null,
+          name: b.name || (b.set + ' · Test ' + b.n), set: b.set, driveId: b.drive, keyImg: b.keyImg || null, file: b.file || null,
           note: b.note || (b.full ? NOTE_FULL : ''), builtin: true, order: i
         };
         var row = have[id];
         if (!row) {
           var key = bundledKey(b);
-          writes.push(DB.put(TESTS, Object.assign({ id: id, answerKey: key, keySource: keyCount({ answerKey: key }) ? 'bundled' : null, createdAt: now, updatedAt: now }, meta)));
+          writes.push(DB.put(TESTS, Object.assign({ id: id, answerKey: key, keySource: keyCount({ answerKey: key }) ? keySourceOf(b) : null, createdAt: now, updatedAt: now }, meta)));
           return;
         }
         // Refresh catalog metadata; fill in a bundled key only if the user has none.
@@ -237,7 +236,7 @@ window.VNoteToeic = (function () {
         Object.assign(row, meta);
         if (!keyCount(row)) {
           var k2 = bundledKey(b);
-          if (keyCount({ answerKey: k2 })) { row.answerKey = k2; row.keySource = 'bundled'; changed = true; }
+          if (keyCount({ answerKey: k2 })) { row.answerKey = k2; row.keySource = keySourceOf(b); changed = true; }
         }
         if (changed) writes.push(DB.put(TESTS, row));
       });
@@ -276,6 +275,7 @@ window.VNoteToeic = (function () {
   function renderList() {
     state.screen = 'list';
     stopTimer();
+    unmountViewer();
     return loadAll().then(function (data) {
       var byTest = {};
       data.tests.forEach(function (t) { byTest[t.id] = t; });
@@ -301,9 +301,12 @@ window.VNoteToeic = (function () {
         });
         var kc = keyCount(t);
         var keyBadge = kc
-          ? '<span class="badge badge-success">✓ Đáp án ' + kc + ' câu' + (t.keySource === 'bundled' ? ' (có sẵn)' : '') + '</span>'
+          ? (t.keySource === 'ai'
+            ? '<span class="badge badge-accent" title="Đáp án do AI giải, có thể sai vài câu">🤖 Đáp án AI giải</span>'
+            : '<span class="badge badge-success">✓ Đáp án ' + kc + ' câu' + (t.keySource === 'bundled' ? ' (có sẵn)' : '') + '</span>')
           : '<span class="badge badge-warning">Chưa có đáp án</span>';
-        var src = t.driveId ? '<span class="badge badge-accent">Google Drive</span>' : '<span class="badge">PDF máy</span>';
+        var src = t.fileId ? '<span class="badge badge-success" title="Dùng được khi không có mạng">📱 PDF trên máy</span>'
+          : '<span class="badge badge-accent" title="Cần Internet">☁ Google Drive</span>';
         var modeOpts = Object.keys(MODES).map(function (k) { return '<option value="' + k + '">' + MODES[k].label + '</option>'; }).join('');
         var link = openUrl(t);
         return '<div class="card toeic-test-card">' +
@@ -317,7 +320,10 @@ window.VNoteToeic = (function () {
           '</div>' +
           '<div class="toeic-test-links">' +
           '<a class="toeic-link" data-toeic-key="' + t.id + '">🔑 ' + (kc ? 'Sửa đáp án' : 'Nhập đáp án') + '</a>' +
-          (link ? '<a class="toeic-link" href="' + link + '" target="_blank" rel="noopener">↗ Mở PDF</a>' : '') +
+          (link ? '<a class="toeic-link" href="' + link + '" target="_blank" rel="noopener">↗ Drive</a>' : '') +
+          (t.fileId && t.driveId
+            ? '<a class="toeic-link" data-toeic-detach="' + t.id + '" title="Xoá bản PDF lưu trên máy, quay lại dùng Google Drive">✕ Bỏ PDF máy</a>'
+            : (t.fileId ? '' : '<a class="toeic-link" data-toeic-attach="' + t.id + '" title="Lưu file PDF vào máy để làm bài không cần mạng">📎 Gắn PDF</a>')) +
           (t.builtin ? '' : '<a class="toeic-link toeic-link-danger" data-toeic-delete="' + t.id + '">🗑 Xoá</a>') +
           '</div></div>';
       }
@@ -351,16 +357,20 @@ window.VNoteToeic = (function () {
       root().innerHTML =
         '<div class="view-header"><div><h1>📝 TOEIC Reading Test</h1>' +
         '<p>Thi thử Part 5–7 (câu 101–200): đề hiển thị từ PDF, phiếu trả lời, đồng hồ 75 phút, chấm điểm &amp; xem lại.</p></div>' +
-        '<button class="btn btn-primary" id="toeic-add-btn">＋ Thêm đề</button></div>' +
+        '<div class="toolbar" style="margin:0;">' +
+        '<button class="btn" id="toeic-bulk-btn" title="Chọn nhiều file PDF đã tải từ Drive — tự khớp với từng đề">📁 Gắn PDF từ máy</button>' +
+        '<button class="btn btn-primary" id="toeic-add-btn">＋ Thêm đề</button></div></div>' +
+        (isOnline() ? '' : '<div class="toeic-offline card">📴 <strong>Đang offline.</strong> Các đề có nhãn <em>📱 PDF trên máy</em> làm được ngay; đề <em>☁ Google Drive</em> cần gắn file PDF trước (nút <em>📁 Gắn PDF từ máy</em>).</div>') +
         resumeHtml +
         '<div class="toeic-help card"><strong>Cách dùng:</strong> chọn đề → chọn phần thi → <em>Bắt đầu</em>. Đề hiển thị bên trái, phiếu trả lời bên phải. ' +
         'Phím tắt: <kbd>A</kbd>–<kbd>D</kbd> chọn đáp án, <kbd>↑</kbd>/<kbd>↓</kbd> chuyển câu, <kbd>F</kbd> đánh dấu. ' +
-        'Bài làm được lưu tự động — có thể thoát và làm tiếp. ETS 2023 &amp; 2022 đã có sẵn đáp án Reading (chép từ ảnh đáp án trong Drive — nếu thấy sai, sửa ở 🔑). ' +
-        'ETS 2024 không kèm đáp án: nhập đáp án (🔑) để chấm, có thể nhập cả sau khi nộp bài.</div>' +
+        'Bài làm được lưu tự động — có thể thoát và làm tiếp. ' +
+        '<br><strong>Đáp án:</strong> ETS 2023 &amp; 2022 chép từ ảnh đáp án trong Drive; ETS 2024 không có đáp án gốc nên do AI giải (🤖, có thể sai vài câu). Sửa bất kỳ lúc nào ở 🔑, kể cả nhập từ file. ' +
+        '<br><strong>Không có mạng / iPhone:</strong> tải các file PDF đề từ Drive về máy, bấm <em>📁 Gắn PDF từ máy</em> và chọn tất cả — web tự nhận ra file nào của đề nào và lưu lại để làm bài offline.</div>' +
         cards +
         '<h3 style="margin:24px 0 10px;">Lịch sử làm bài</h3>' +
         (historyRows
-          ? '<table class="table"><thead><tr><th>Ngày</th><th>Đề</th><th>Phần</th><th>Kết quả</th><th>Thời gian</th><th></th></tr></thead><tbody>' + historyRows + '</tbody></table>'
+          ? '<div class="table-wrap"><table class="table"><thead><tr><th>Ngày</th><th>Đề</th><th>Phần</th><th>Kết quả</th><th>Thời gian</th><th></th></tr></thead><tbody>' + historyRows + '</tbody></table></div>'
           : '<p class="toeic-muted">Chưa có bài làm nào.</p>');
     });
   }
@@ -407,25 +417,91 @@ window.VNoteToeic = (function () {
     });
   }
 
-  function examLayout(sheetHtml, barHtml) {
-    return '<div class="toeic-exam">' +
+  function examLayout(sheetHtml, barHtml, review) {
+    // On phones the full answer sheet becomes a slide-up panel and a compact bar at the
+    // bottom answers the current question, so the PDF can use the whole screen.
+    var mbar = review ? '' :
+      '<div class="toeic-mbar" id="toeic-mbar">' +
+      '<button class="toeic-mbtn" data-mnav="-1" aria-label="Câu trước">‹</button>' +
+      '<span class="toeic-mq" id="toeic-mq">101</span>' +
+      OPTIONS.map(function (o) { return '<button class="toeic-mopt" data-mopt="' + o + '">' + o + '</button>'; }).join('') +
+      '<button class="toeic-mbtn toeic-mflag" data-mflag="1" aria-label="Đánh dấu">⚑</button>' +
+      '<button class="toeic-mbtn" data-mnav="1" aria-label="Câu sau">›</button>' +
+      '<button class="toeic-mbtn toeic-msheet" data-msheet="1" aria-label="Phiếu trả lời">☰</button>' +
+      '</div>';
+    return '<div class="toeic-exam' + (review ? ' is-review' : ' is-exam') + '">' +
       '<div class="toeic-bar">' + barHtml + '</div>' +
       '<div class="toeic-body">' +
       '<div class="toeic-pdf" id="toeic-pdf"><div class="toeic-pdf-loading toeic-muted">Đang tải đề…</div></div>' +
-      '<div class="toeic-sheet" id="toeic-sheet">' + sheetHtml + '</div>' +
-      '</div></div>';
+      '<div class="toeic-sheet" id="toeic-sheet">' + (review ? '' : '<div class="toeic-sheet-head"><strong>Phiếu trả lời</strong><button class="btn btn-sm" data-msheet="1">Đóng</button></div>') + sheetHtml + '</div>' +
+      '</div>' + mbar + '</div>';
   }
 
+  function updateMobileBar() {
+    var bar = el('toeic-mbar');
+    if (!bar || !state.attempt) return;
+    var q = state.current, a = state.attempt;
+    el('toeic-mq').textContent = q;
+    bar.querySelectorAll('[data-mopt]').forEach(function (b) { b.classList.toggle('selected', a.answers[q] === b.dataset.mopt); });
+    bar.querySelector('[data-mflag]').classList.toggle('on', !!a.flags[q]);
+  }
+
+  function toggleSheet(force) {
+    var exam = root().querySelector('.toeic-exam');
+    if (!exam) return;
+    var open = force != null ? force : !exam.classList.contains('sheet-open');
+    exam.classList.toggle('sheet-open', open);
+    if (open) focusQuestion(state.current);
+  }
+
+  function unmountViewer() {
+    if (state.viewer) { state.viewer.destroy(); state.viewer = null; }
+  }
+
+  /**
+   * Show the test PDF: a copy stored on this device (offline, rendered with pdf.js) wins over
+   * the Google Drive viewer, which needs Internet. Remembers the last page read per test.
+   */
   function mountPdf() {
     var test = state.test;
-    pdfSrc(test).then(function (src) {
-      var box = el('toeic-pdf');
-      if (!box) return;
-      if (!src) { box.innerHTML = '<div class="toeic-pdf-loading">Không tìm thấy file PDF của đề này.</div>'; return; }
-      var link = openUrl(test);
-      box.innerHTML = '<iframe src="' + src + '" title="' + U.escapeHtml(test.name) + '" allow="autoplay"></iframe>' +
-        (link ? '<a class="toeic-pdf-open" href="' + link + '" target="_blank" rel="noopener">↗ Mở tab mới</a>' : '');
-    });
+    var box = el('toeic-pdf');
+    if (!box) return;
+    unmountViewer();
+    var attachBtn = '<button class="btn btn-sm btn-primary" data-toeic-attach="' + test.id + '">📎 Chọn file PDF trên máy</button>';
+    if (test.fileId) {
+      DB.get(FILES, test.fileId).then(function (row) {
+        if (!box.isConnected || state.test !== test) return;
+        if (!row || !row.blob) {
+          box.innerHTML = '<div class="toeic-pdf-loading">Không tìm thấy file PDF đã lưu cho đề này.<br><br>' + attachBtn + '</div>';
+          return;
+        }
+        state.viewer = window.VNotePdfView.mount(box, row.blob, {
+          startPage: test.lastPage || 1,
+          onPage: function (n) {
+            test.lastPage = n;
+            clearTimeout(state.pageSaveTimer);
+            state.pageSaveTimer = setTimeout(function () {
+              DB.get(TESTS, test.id).then(function (t) { if (t) { t.lastPage = n; DB.put(TESTS, t); } });
+            }, 800);
+          }
+        });
+      });
+      return;
+    }
+    if (!test.driveId) {
+      box.innerHTML = '<div class="toeic-pdf-loading">Đề này chưa có file PDF.<br><br>' + attachBtn + '</div>';
+      return;
+    }
+    if (!isOnline()) {
+      box.innerHTML = '<div class="toeic-pdf-loading"><strong>Không có kết nối Internet.</strong><br>' +
+        'Đề này đang lấy từ Google Drive. Để làm bài offline, chọn file PDF của đề đã tải về máy' +
+        (test.file ? ' (<code>' + U.escapeHtml(test.file) + '</code>)' : '') + '.<br><br>' + attachBtn +
+        '<p class="toeic-muted toeic-small">Phiếu trả lời và đồng hồ vẫn dùng được bình thường.</p></div>';
+      return;
+    }
+    var link = openUrl(test);
+    box.innerHTML = '<iframe src="' + driveSrc(test) + '" title="' + U.escapeHtml(test.name) + '" allow="autoplay"></iframe>' +
+      (link ? '<a class="toeic-pdf-open" href="' + link + '" target="_blank" rel="noopener">↗ Mở tab mới</a>' : '');
   }
 
   function renderExam() {
@@ -497,8 +573,9 @@ window.VNoteToeic = (function () {
     var row = sheet.querySelector('[data-qrow="' + q + '"]');
     if (row) {
       row.classList.add('current');
-      if (scroll !== false) row.scrollIntoView({ block: 'nearest' });
+      if (scroll !== false && sheet.offsetParent) row.scrollIntoView({ block: 'nearest' });
     }
+    updateMobileBar();
   }
 
   function setAnswer(q, opt) {
@@ -508,6 +585,7 @@ window.VNoteToeic = (function () {
     var row = el('toeic-sheet').querySelector('[data-qrow="' + q + '"]');
     if (row) row.querySelectorAll('.toeic-opt').forEach(function (b) { b.classList.toggle('selected', b.dataset.opt === a.answers[q]); });
     updateProgress();
+    updateMobileBar();
     saveAttempt();
   }
 
@@ -516,6 +594,7 @@ window.VNoteToeic = (function () {
     if (a.flags[q]) delete a.flags[q]; else a.flags[q] = true;
     var row = el('toeic-sheet').querySelector('[data-qrow="' + q + '"]');
     if (row) row.classList.toggle('flagged', !!a.flags[q]);
+    updateMobileBar();
     saveAttempt();
   }
 
@@ -627,6 +706,7 @@ window.VNoteToeic = (function () {
           return '<div class="toeic-part-bar"><div class="toeic-part-bar-label">' + p.label + '<span>' + bp.correct + '/' + bp.keyed + '</span></div>' +
             '<div class="toeic-meter"><div style="width:' + Math.round(ratio * 100) + '%"></div></div></div>';
         }).join('') + '</div>' +
+        (t.keySource === 'ai' ? '<p class="toeic-ainote">🤖 Đáp án của đề này do AI giải (bộ đề gốc không có đáp án) nên có thể sai vài câu. Nếu thấy câu nào bị chấm sai, sửa ở 🔑 Sửa đáp án.</p>' : '') +
         (sc.keyed < total ? '<p class="toeic-muted toeic-small">Đáp án mới có ' + sc.keyed + '/' + total + ' câu — các câu thiếu đáp án không được tính.</p>' : '');
     }
 
@@ -646,7 +726,7 @@ window.VNoteToeic = (function () {
       (t.keyImg ? '<a class="btn" href="https://drive.google.com/file/d/' + encodeURIComponent(t.keyImg) + '/view" target="_blank" rel="noopener">🖼 Ảnh đáp án</a>' : '') +
       '<button class="btn btn-primary" id="toeic-retry">↻ Làm lại</button></div></div>' +
       summary +
-      examLayout(sheetHtml(true), bar);
+      examLayout(sheetHtml(true), bar, true);
     mountPdf();
   }
 
@@ -730,6 +810,128 @@ window.VNoteToeic = (function () {
     }).catch(function (err) { toast('Không lưu được: ' + (err && err.message)); });
   }
 
+  /* ---------------------------------------------------------------- */
+  /* Offline PDFs stored on the device                                 */
+  /* ---------------------------------------------------------------- */
+
+  function normName(name) {
+    return String(name || '').toLowerCase().replace(/\.pdf$/, '').replace(/\(\d+\)/g, '').replace(/[^a-z0-9]/g, '');
+  }
+
+  /** Find the catalog test a downloaded file belongs to: exact Drive file name first, then by pattern. */
+  function matchFile(fileName, tests) {
+    var n = normName(fileName);
+    var exact = tests.filter(function (t) { return t.file && normName(t.file) === n; });
+    if (exact.length) return exact[0];
+    var num = n.match(/test0*(\d{1,2})/);
+    if (!num) return null;
+    var k = +num[1];
+    var year = /2022/.test(n) ? 'ETS 2022' : /2023/.test(n) ? 'ETS 2023' : /2024|rc/.test(n) ? 'ETS 2024' : null;
+    if (!year) return null;
+    return tests.filter(function (t) { return t.builtin && t.set === year && t.name === year + ' · Test ' + k; })[0] || null;
+  }
+
+  function storeFileFor(test, file) {
+    var now = new Date().toISOString();
+    var oldId = test.fileId;
+    var fileId = DB.uid();
+    return DB.put(FILES, { id: fileId, name: file.name, blob: file, size: file.size, createdAt: now }).then(function () {
+      test.fileId = fileId;
+      test.lastPage = test.lastPage || 1;
+      test.updatedAt = now;
+      return DB.put(TESTS, test);
+    }).then(function () { if (oldId) return DB.remove(FILES, oldId); });
+  }
+
+  function pickFiles(multiple, cb) {
+    var input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'application/pdf,.pdf';
+    input.multiple = !!multiple;
+    input.style.display = 'none';
+    input.addEventListener('change', function () {
+      var files = Array.prototype.slice.call(input.files || []);
+      input.remove();
+      if (files.length) cb(files);
+    });
+    document.body.appendChild(input);
+    input.click();
+  }
+
+  function attachOne(testId) {
+    pickFiles(false, function (files) {
+      DB.get(TESTS, testId).then(function (t) {
+        if (!t) return;
+        toast('Đang lưu file vào máy…');
+        return storeFileFor(t, files[0]).then(function () {
+          toast('Đã lưu PDF cho ' + t.name + ' — dùng được khi offline');
+          if (state.test && state.test.id === t.id) { state.test = t; mountPdf(); }
+          else if (state.screen === 'list') renderList();
+        });
+      }).catch(function (err) { toast('Không lưu được file: ' + (err && err.message || err)); });
+    });
+  }
+
+  function attachBulk() {
+    pickFiles(true, function (files) {
+      DB.getAll(TESTS).then(function (tests) {
+        var matched = [], unmatched = [];
+        files.forEach(function (f) {
+          var t = matchFile(f.name, tests);
+          if (t) matched.push([t, f]); else unmatched.push(f.name);
+        });
+        toast('Đang lưu ' + matched.length + ' file…');
+        return matched.reduce(function (p, pair) {
+          return p.then(function () { return storeFileFor(pair[0], pair[1]); });
+        }, Promise.resolve()).then(function () {
+          var msg = 'Đã gắn ' + matched.length + '/' + files.length + ' file PDF:\n' +
+            matched.map(function (m) { return '  ✓ ' + m[1].name + ' → ' + m[0].name; }).join('\n');
+          if (unmatched.length) msg += '\n\nKhông nhận ra đề (dùng nút 📎 Gắn PDF ở từng đề, hoặc ＋ Thêm đề):\n' + unmatched.map(function (n) { return '  • ' + n; }).join('\n');
+          alert(msg);
+          renderList();
+        });
+      }).catch(function (err) { toast('Không lưu được file: ' + (err && err.message || err)); });
+    });
+  }
+
+  function detach(testId) {
+    if (!confirm('Xoá bản PDF đã lưu trên máy cho đề này? (Đề vẫn xem được qua Google Drive khi có mạng.)')) return;
+    DB.get(TESTS, testId).then(function (t) {
+      if (!t || !t.fileId) return;
+      var fid = t.fileId;
+      delete t.fileId;
+      return DB.put(TESTS, t).then(function () { return DB.remove(FILES, fid); });
+    }).then(renderList);
+  }
+
+  /** Load an answer key from a .txt/.csv/.json file into the key dialog (works offline). */
+  function importKeyFile() {
+    var input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.txt,.csv,.json,text/plain,application/json';
+    input.style.display = 'none';
+    input.addEventListener('change', function () {
+      var f = input.files && input.files[0];
+      input.remove();
+      if (!f) return;
+      f.text().then(function (txt) {
+        var text = txt;
+        try {
+          var obj = JSON.parse(txt);
+          if (obj && typeof obj === 'object') {
+            var src = obj.answerKey || obj;
+            text = Object.keys(src).map(function (q) { return q + ' ' + src[q]; }).join('\n');
+          }
+        } catch (e) { /* plain text */ }
+        el('toeic-key-text').value = text;
+        updateKeyPreview();
+        toast('Đã đọc file ' + f.name + ' — kiểm tra rồi bấm Lưu');
+      });
+    });
+    document.body.appendChild(input);
+    input.click();
+  }
+
   function deleteTest(testId) {
     if (!confirm('Xoá đề này và toàn bộ lịch sử làm bài của nó?')) return;
     Promise.all([DB.get(TESTS, testId), DB.getAll(ATTEMPTS)]).then(function (res) {
@@ -756,6 +958,18 @@ window.VNoteToeic = (function () {
       if (!view) return;
 
       if (e.target.closest('#toeic-add-btn')) return openAddModal();
+      if (e.target.closest('#toeic-bulk-btn')) return attachBulk();
+      if ((t = e.target.closest('[data-toeic-attach]'))) return attachOne(t.dataset.toeicAttach);
+      if ((t = e.target.closest('[data-toeic-detach]'))) return detach(t.dataset.toeicDetach);
+      if ((t = e.target.closest('[data-mopt]'))) {
+        var cq = state.current, was = state.attempt.answers[cq] === t.dataset.mopt;
+        setAnswer(cq, t.dataset.mopt);
+        if (!was && cq < state.attempt.to) setTimeout(function () { focusQuestion(cq + 1); }, 180);
+        return;
+      }
+      if ((t = e.target.closest('[data-mnav]'))) return focusQuestion(state.current + parseInt(t.dataset.mnav, 10));
+      if (e.target.closest('[data-mflag]')) return toggleFlag(state.current);
+      if (e.target.closest('[data-msheet]')) return toggleSheet();
       if ((t = e.target.closest('[data-toeic-start]'))) {
         var sel = view.querySelector('[data-toeic-mode="' + t.dataset.toeicStart + '"]');
         return startTest(t.dataset.toeicStart, sel ? sel.value : 'full');
@@ -775,10 +989,17 @@ window.VNoteToeic = (function () {
       if ((t = e.target.closest('.toeic-opt[data-opt]'))) {
         var q = parseInt(t.dataset.q, 10);
         focusQuestion(q, false);
-        return setAnswer(q, t.dataset.opt);
+        setAnswer(q, t.dataset.opt);
+        if (root().querySelector('.toeic-exam.sheet-open')) setTimeout(function () { toggleSheet(false); }, 250);
+        return;
       }
       if ((t = e.target.closest('[data-flag]'))) return toggleFlag(parseInt(t.dataset.flag, 10));
-      if ((t = e.target.closest('[data-qrow]')) && state.screen === 'exam') return focusQuestion(parseInt(t.dataset.qrow, 10), false);
+      if ((t = e.target.closest('[data-qrow]')) && state.screen === 'exam') {
+        focusQuestion(parseInt(t.dataset.qrow, 10), false);
+        var ex = root().querySelector('.toeic-exam.sheet-open');
+        if (ex && e.target.closest('.toeic-opt')) setTimeout(function () { toggleSheet(false); }, 250);
+        return;
+      }
 
       if (e.target.closest('#toeic-submit')) return submit();
       if (e.target.closest('#toeic-exit')) return exitExam();
@@ -795,6 +1016,9 @@ window.VNoteToeic = (function () {
     el('toeic-key-save').addEventListener('click', saveKey);
     el('toeic-key-cancel').addEventListener('click', function () { el('overlay-toeic-key').classList.remove('open'); });
     el('toeic-key-clear').addEventListener('click', function () { el('toeic-key-text').value = ''; updateKeyPreview(); });
+    if (el('toeic-key-file')) el('toeic-key-file').addEventListener('click', importKeyFile);
+    window.addEventListener('online', function () { if (state.screen === 'list') renderList(); });
+    window.addEventListener('offline', function () { if (state.screen === 'list') renderList(); });
     el('toeic-add-save').addEventListener('click', saveAddModal);
     el('toeic-add-cancel').addEventListener('click', function () { el('overlay-toeic-add').classList.remove('open'); });
 
@@ -824,8 +1048,16 @@ window.VNoteToeic = (function () {
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind);
   else bind();
 
+  function home() {
+    if (state.screen === 'exam') return exitExam();
+    state.attempt = null;
+    return renderList();
+  }
+
   return {
+    matchFile: matchFile,
     render: render,
+    home: home,
     parseKey: parseKey,
     estimateReading: estimateReading,
     extractDriveId: extractDriveId

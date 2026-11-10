@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2f7de1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="TOEIC RC">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<title>TOEIC Reading Test</title>
+<meta name="description" content="Thi thử TOEIC Reading (Part 5–7) với bộ đề ETS 2022–2024: phiếu trả lời, đồng hồ, chấm điểm và xem lại.">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/toeic.css">
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" id="brand" href="#" onclick="return false;">🎯 TOEIC Reading <span class="brand-sub">Part 5–7 · ETS 2022–2024</span></a>
+  <span class="spacer"></span>
+  <button class="btn btn-sm" id="btn-export" title="Tải bản sao lưu đáp án & lịch sử">⬇ <span class="btn-label">Sao lưu</span></button>
+  <button class="btn btn-sm" id="btn-import" title="Khôi phục từ file sao lưu">⬆ <span class="btn-label">Khôi phục</span></button>
+  <input type="file" id="import-file" accept="application/json,.json" hidden>
+  <button class="btn btn-sm" id="btn-theme" title="Đổi giao diện sáng/tối">🌓</button>
+</header>
+
+<main class="page">
+  <section class="view active" data-view-id="toeic">
+    <div id="toeic-root"></div>
+  </section>
+</main>
+
+<!-- ============ TOEIC ANSWER KEY MODAL ============ -->
+<div class="overlay" id="overlay-toeic-key">
+  <div class="modal" style="max-width:560px;">
+    <div style="padding:14px 16px; border-bottom:1px solid var(--border); font-weight:600;" id="toeic-key-title">🔑 Đáp án</div>
+    <div style="padding:12px 16px; display:flex; flex-direction:column; gap:8px;">
+      <p class="toeic-small toeic-muted" style="margin:0;">Dán đáp án (hoặc bấm <em>📄 Từ file</em>) theo dạng <code>101 B, 102 D, 103 A…</code> (hoặc <code>1A 2C…</code>), hoặc chỉ một chuỗi chữ cái <code>BDAC…</code> bắt đầu từ câu số:</p>
+      <label class="toeic-small">Bắt đầu từ câu <input class="field-input" id="toeic-key-start" type="number" min="101" max="200" value="101" style="width:90px;"></label>
+      <textarea class="qc-textarea" id="toeic-key-text" style="min-height:180px; font-family:var(--font-mono);" placeholder="101B 102D 103A …"></textarea>
+      <div class="toeic-small" id="toeic-key-preview"></div>
+      <a class="toeic-small toeic-link" id="toeic-key-img" target="_blank" rel="noopener" hidden>↗ Xem ảnh đáp án gốc trong Drive để đối chiếu</a>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" id="toeic-key-clear">Xoá hết</button>
+      <button class="btn" id="toeic-key-file" title="Đọc đáp án từ file .txt / .csv / .json trên máy">📄 Từ file</button>
+      <span class="spacer" style="flex:1"></span>
+      <button class="btn" id="toeic-key-cancel">Huỷ</button>
+      <button class="btn btn-primary" id="toeic-key-save">Lưu đáp án</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ TOEIC ADD TEST MODAL ============ -->
+<div class="overlay" id="overlay-toeic-add">
+  <div class="modal" style="max-width:520px;">
+    <div style="padding:14px 16px; border-bottom:1px solid var(--border); font-weight:600;">＋ Thêm đề TOEIC Reading</div>
+    <div style="padding:12px 16px; display:flex; flex-direction:column; gap:10px;">
+      <label class="toeic-small">Tên đề<input class="field-input" id="toeic-add-name" placeholder="VD: ETS 2024 · Test 3 (sách)" style="width:100%; margin-top:4px;"></label>
+      <label class="toeic-small">Link Google Drive của file PDF<input class="field-input" id="toeic-add-drive" placeholder="https://drive.google.com/file/d/…/view" style="width:100%; margin-top:4px;"></label>
+      <div class="toeic-small toeic-muted" style="text-align:center;">— hoặc —</div>
+      <label class="toeic-small">File PDF trên máy (lưu trong trình duyệt)<input class="field-input" id="toeic-add-file" type="file" accept="application/pdf,.pdf" style="width:100%; margin-top:4px;"></label>
+    </div>
+    <div class="modal-footer">
+      <span class="spacer" style="flex:1"></span>
+      <button class="btn" id="toeic-add-cancel">Huỷ</button>
+      <button class="btn btn-primary" id="toeic-add-save">Thêm đề</button>
+    </div>
+  </div>
+</div>
+
+
+<div class="toast" id="toast"></div>
+
+<script src="js/toeic-keys.js"></script>
+<script src="js/core.js"></script>
+<script src="js/pdfview.js"></script>
+<script src="js/toeic.js"></script>
+<script>
+  // Offline cache (PWA): works when the site is served over https or localhost,
+  // e.g. GitHub Pages; ignored when index.html is opened directly from disk.
+  if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
+    window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); });
+  }
+</script>
+</body>
+</html>
