@@ -17,6 +17,7 @@
 <link rel="stylesheet" href="css/app.css">
 <link rel="stylesheet" href="css/components.css">
 <link rel="stylesheet" href="css/dark.css">
+<link rel="stylesheet" href="css/toeic.css">
 <link rel="stylesheet" href="css/responsive.css">
 </head>
 <body>
@@ -75,6 +76,7 @@
         <div class="nav-divider"></div>
 
         <a class="nav-item" data-view="study"><span class="nav-icon">📚</span><span class="nav-label">Study</span></a>
+        <a class="nav-item" data-view="toeic"><span class="nav-icon">🎯</span><span class="nav-label">TOEIC Test</span></a>
         <a class="nav-item" data-view="tasks"><span class="nav-icon">✅</span><span class="nav-label">Tasks</span></a>
         <a class="nav-item" data-view="projects"><span class="nav-icon">📁</span><span class="nav-label">Projects</span></a>
 
@@ -356,6 +358,11 @@
       </section>
 
       <!-- Flashcards -->
+      <!-- TOEIC Reading Test (rendered by js/toeic.js) -->
+      <section class="view" data-view-id="toeic">
+        <div id="toeic-root"></div>
+      </section>
+
       <section class="view" data-view-id="flashcards">
         <div class="view-header">
           <div><h1>Flashcards</h1><p>Học bằng flashcard theo chủ đề kỹ thuật</p></div>
@@ -754,6 +761,43 @@
   </div>
 </div>
 
+<!-- ============ TOEIC ANSWER KEY MODAL ============ -->
+<div class="overlay" id="overlay-toeic-key">
+  <div class="modal" style="max-width:560px;">
+    <div style="padding:14px 16px; border-bottom:1px solid var(--border); font-weight:600;" id="toeic-key-title">🔑 Đáp án</div>
+    <div style="padding:12px 16px; display:flex; flex-direction:column; gap:8px;">
+      <p class="toeic-small toeic-muted" style="margin:0;">Dán đáp án theo dạng <code>101 B, 102 D, 103 A…</code> (hoặc <code>1A 2C…</code>), hoặc chỉ một chuỗi chữ cái <code>BDAC…</code> bắt đầu từ câu số:</p>
+      <label class="toeic-small">Bắt đầu từ câu <input class="field-input" id="toeic-key-start" type="number" min="101" max="200" value="101" style="width:90px;"></label>
+      <textarea class="qc-textarea" id="toeic-key-text" style="min-height:180px; font-family:var(--font-mono);" placeholder="101B 102D 103A …"></textarea>
+      <div class="toeic-small" id="toeic-key-preview"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" id="toeic-key-clear">Xoá hết</button>
+      <span class="spacer" style="flex:1"></span>
+      <button class="btn" id="toeic-key-cancel">Huỷ</button>
+      <button class="btn btn-primary" id="toeic-key-save">Lưu đáp án</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ TOEIC ADD TEST MODAL ============ -->
+<div class="overlay" id="overlay-toeic-add">
+  <div class="modal" style="max-width:520px;">
+    <div style="padding:14px 16px; border-bottom:1px solid var(--border); font-weight:600;">＋ Thêm đề TOEIC Reading</div>
+    <div style="padding:12px 16px; display:flex; flex-direction:column; gap:10px;">
+      <label class="toeic-small">Tên đề<input class="field-input" id="toeic-add-name" placeholder="VD: ETS 2024 · Test 3 (sách)" style="width:100%; margin-top:4px;"></label>
+      <label class="toeic-small">Link Google Drive của file PDF<input class="field-input" id="toeic-add-drive" placeholder="https://drive.google.com/file/d/…/view" style="width:100%; margin-top:4px;"></label>
+      <div class="toeic-small toeic-muted" style="text-align:center;">— hoặc —</div>
+      <label class="toeic-small">File PDF trên máy (lưu trong trình duyệt)<input class="field-input" id="toeic-add-file" type="file" accept="application/pdf,.pdf" style="width:100%; margin-top:4px;"></label>
+    </div>
+    <div class="modal-footer">
+      <span class="spacer" style="flex:1"></span>
+      <button class="btn" id="toeic-add-cancel">Huỷ</button>
+      <button class="btn btn-primary" id="toeic-add-save">Thêm đề</button>
+    </div>
+  </div>
+</div>
+
 <!-- ============ NOTE VERSION HISTORY MODAL ============ -->
 <div class="overlay" id="overlay-note-history">
   <div class="modal" style="max-width:600px;">
@@ -920,6 +964,7 @@
 <script src="js/troubleshooting.js"></script>
 <script src="js/flashcards.js"></script>
 <script src="js/graph.js"></script>
+<script src="js/toeic.js"></script>
 <script src="js/file-tools/parsers.js"></script>
 <script src="js/file-tools/hash.js"></script>
 <script src="js/file-tools/zip.js"></script>

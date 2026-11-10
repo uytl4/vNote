@@ -2,8 +2,10 @@ window.VNoteDB = (function () {
   'use strict';
 
   var DB_NAME = 'vnote-ultra';
-  var DB_VERSION = 2;
-  var RECORD_STORES = ['notes', 'tasks', 'projects', 'commands', 'snippets', 'troubleshooting', 'flashcards', 'tags', 'history', 'note_versions'];
+  var DB_VERSION = 3;
+  var RECORD_STORES = ['notes', 'tasks', 'projects', 'commands', 'snippets', 'troubleshooting', 'flashcards', 'tags', 'history', 'note_versions', 'toeic_tests', 'toeic_attempts'];
+  // Stores created but excluded from JSON backup (binary blobs, e.g. local TOEIC PDFs).
+  var BLOB_STORES = ['toeic_files'];
 
   var dbPromise = null;
 
@@ -13,7 +15,7 @@ window.VNoteDB = (function () {
       var req = indexedDB.open(DB_NAME, DB_VERSION);
       req.onupgradeneeded = function (e) {
         var db = e.target.result;
-        RECORD_STORES.forEach(function (name) {
+        RECORD_STORES.concat(BLOB_STORES).forEach(function (name) {
           if (!db.objectStoreNames.contains(name)) {
             db.createObjectStore(name, { keyPath: 'id' });
           }

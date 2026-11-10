@@ -107,6 +107,7 @@
     else if (viewId === 'projects') window.VNoteProjects.render();
     else if (viewId === 'analytics') refreshAnalytics();
     else if (viewId === 'knowledge-graph') window.VNoteGraph.refresh();
+    else if (viewId === 'toeic') window.VNoteToeic.render();
     else if (GENERIC_VIEWS[viewId] && GENERIC_VIEWS[viewId].categoryFilter) refreshCategoryView(viewId, GENERIC_VIEWS[viewId].categoryFilter);
   }
 

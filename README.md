@@ -108,3 +108,11 @@ js/
     splitter.js          File Splitter
   app.js               navigation, theme, modals, shortcuts, dashboard, search, settings wiring
 ```
+
+**TOEIC Reading Test**
+
+- New sidebar entry **🎯 TOEIC Test** (`js/toeic.js`, `css/toeic.css`): a Part 5–7 (questions 101–200) mock-exam runner.
+- Ships with the 10 ETS 2024 RC tests (plus the full ETS 2024 Reading book) from the shared Google Drive folder. Only Drive file ids are stored — the test content is not copied into this repo; it is shown through Drive's own `/preview` viewer. You can also add any other test by Drive link or by uploading a local PDF (kept as a Blob in IndexedDB store `toeic_files`, excluded from JSON backup).
+- Exam screen: PDF on the left, bubble answer sheet on the right; modes Full (75'), Part 5, Part 6, Part 7 with a custom time limit (0 = untimed); countdown with auto-submit; keyboard `A`–`D` to answer, `↑`/`↓` to move, `F` to flag; autosave + resume of unfinished attempts (timer pauses while you're on another view/tab).
+- The source PDFs have no answer key, so you paste one (🔑) — `101B 102D …`, `1A 2C …`, or a plain `BDAC…` string. Attempts can be scored or re-scored after submitting.
+- Result screen: correct/wrong/blank, per-part bars, an *estimated* Reading scaled score (full test only; approximate conversion), and a review sheet with your answer vs. the key, filterable by wrong/blank/flagged. History is listed on the TOEIC page and logged to Analytics.
