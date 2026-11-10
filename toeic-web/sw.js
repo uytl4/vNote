@@ -1,5 +1,5 @@
 /* Offline cache for the TOEIC Reading site. Bump VERSION whenever files change. */
-var VERSION = 'toeic-rc-v2';
+var VERSION = 'toeic-rc-v3';
 var FILES = [
   './', 'index.html', 'manifest.webmanifest',
   'css/base.css', 'css/toeic.css',

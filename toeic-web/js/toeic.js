@@ -205,6 +205,27 @@ window.VNoteToeic = (function () {
 
   function isOnline() { return navigator.onLine !== false; }
 
+  /*
+   * Some networks (school/office proxies) block Google Drive, so the embedded viewer shows a
+   * proxy error page instead of the test. Probe drive.google.com once with an image request:
+   * an image load can't be faked by an HTML error page, so onerror means "Drive not usable".
+   */
+  var drive = { ok: null, promise: null, forced: false };
+
+  function checkDrive(force) {
+    if (!isOnline()) { drive.ok = false; return Promise.resolve(false); }
+    if (drive.promise && !force) return drive.promise;
+    drive.promise = new Promise(function (resolve) {
+      var img = new Image();
+      var timer = setTimeout(function () { finish(false); }, 7000);
+      function finish(ok) { clearTimeout(timer); img.onload = img.onerror = null; resolve(ok); }
+      img.onload = function () { finish(true); };
+      img.onerror = function () { finish(false); };
+      img.src = 'https://drive.google.com/favicon.ico?_=' + Date.now();
+    }).then(function (ok) { drive.ok = ok; return ok; });
+    return drive.promise;
+  }
+
   function openUrl(test) {
     return test.driveId ? 'https://drive.google.com/file/d/' + encodeURIComponent(test.driveId) + '/view' : null;
   }
@@ -360,6 +381,7 @@ window.VNoteToeic = (function () {
         '<div class="toolbar" style="margin:0;">' +
         '<button class="btn" id="toeic-bulk-btn" title="Chọn nhiều file PDF đã tải từ Drive — tự khớp với từng đề">📁 Gắn PDF từ máy</button>' +
         '<button class="btn btn-primary" id="toeic-add-btn">＋ Thêm đề</button></div></div>' +
+        (isOnline() && drive.ok === false && !drive.forced ? '<div class="toeic-offline card">🚫 <strong>Mạng này không mở được Google Drive.</strong> Tải các file PDF đề về máy (qua điện thoại hoặc mạng khác), rồi bấm <em>📁 Gắn PDF từ máy</em> và chọn tất cả — web tự nhận đề và lưu lại để dùng.</div>' : '') +
         (isOnline() ? '' : '<div class="toeic-offline card">📴 <strong>Đang offline.</strong> Các đề có nhãn <em>📱 PDF trên máy</em> làm được ngay; đề <em>☁ Google Drive</em> cần gắn file PDF trước (nút <em>📁 Gắn PDF từ máy</em>).</div>') +
         resumeHtml +
         '<div class="toeic-help card"><strong>Cách dùng:</strong> chọn đề → chọn phần thi → <em>Bắt đầu</em>. Đề hiển thị bên trái, phiếu trả lời bên phải. ' +
@@ -372,6 +394,9 @@ window.VNoteToeic = (function () {
         (historyRows
           ? '<div class="table-wrap"><table class="table"><thead><tr><th>Ngày</th><th>Đề</th><th>Phần</th><th>Kết quả</th><th>Thời gian</th><th></th></tr></thead><tbody>' + historyRows + '</tbody></table></div>'
           : '<p class="toeic-muted">Chưa có bài làm nào.</p>');
+      if (drive.ok === null && isOnline()) {
+        checkDrive().then(function (ok) { if (!ok && state.screen === 'list') renderList(); });
+      }
     });
   }
 
@@ -492,16 +517,30 @@ window.VNoteToeic = (function () {
       box.innerHTML = '<div class="toeic-pdf-loading">Đề này chưa có file PDF.<br><br>' + attachBtn + '</div>';
       return;
     }
-    if (!isOnline()) {
-      box.innerHTML = '<div class="toeic-pdf-loading"><strong>Không có kết nối Internet.</strong><br>' +
-        'Đề này đang lấy từ Google Drive. Để làm bài offline, chọn file PDF của đề đã tải về máy' +
-        (test.file ? ' (<code>' + U.escapeHtml(test.file) + '</code>)' : '') + '.<br><br>' + attachBtn +
-        '<p class="toeic-muted toeic-small">Phiếu trả lời và đồng hồ vẫn dùng được bình thường.</p></div>';
-      return;
+    function showBlocked(offline) {
+      box.innerHTML = '<div class="toeic-pdf-loading">' +
+        (offline ? '<strong>Không có kết nối Internet.</strong><br>'
+          : '<strong>Mạng này không mở được Google Drive</strong> (bị chặn hoặc lỗi kết nối).<br>') +
+        'Hãy dùng file PDF của đề đã tải về máy' +
+        (test.file ? ' (<code>' + U.escapeHtml(test.file) + '</code>)' : '') + ' — làm được cả khi không có mạng.<br><br>' + attachBtn +
+        (offline ? '' : ' <button class="btn btn-sm" data-toeic-forcedrive="1">Vẫn thử mở Google Drive</button>') +
+        '<p class="toeic-muted toeic-small">Phiếu trả lời và đồng hồ vẫn dùng bình thường. Chưa có file? Tải đề từ Drive bằng điện thoại / mạng khác rồi chép sang máy này.</p></div>';
     }
-    var link = openUrl(test);
-    box.innerHTML = '<iframe src="' + driveSrc(test) + '" title="' + U.escapeHtml(test.name) + '" allow="autoplay"></iframe>' +
-      (link ? '<a class="toeic-pdf-open" href="' + link + '" target="_blank" rel="noopener">↗ Mở tab mới</a>' : '');
+    function showDrive() {
+      var link = openUrl(test);
+      box.innerHTML = '<iframe src="' + driveSrc(test) + '" title="' + U.escapeHtml(test.name) + '" allow="autoplay"></iframe>' +
+        '<div class="toeic-pdf-tools">' +
+        '<button class="toeic-pdf-open" data-toeic-attach="' + test.id + '" title="Đề không hiện (mạng chặn Drive)? Dùng file PDF trên máy">📎 Dùng PDF trên máy</button>' +
+        (link ? '<a class="toeic-pdf-open" href="' + link + '" target="_blank" rel="noopener">↗ Mở tab mới</a>' : '') +
+        '</div>';
+    }
+    if (!isOnline()) return showBlocked(true);
+    if (drive.forced) return showDrive();
+    box.innerHTML = '<div class="toeic-pdf-loading toeic-muted">Đang kiểm tra kết nối tới Google Drive…</div>';
+    checkDrive().then(function (ok) {
+      if (!box.isConnected || state.test !== test) return;
+      if (ok) showDrive(); else showBlocked(false);
+    });
   }
 
   function renderExam() {
@@ -959,6 +998,7 @@ window.VNoteToeic = (function () {
 
       if (e.target.closest('#toeic-add-btn')) return openAddModal();
       if (e.target.closest('#toeic-bulk-btn')) return attachBulk();
+      if (e.target.closest('[data-toeic-forcedrive]')) { drive.forced = true; return mountPdf(); }
       if ((t = e.target.closest('[data-toeic-attach]'))) return attachOne(t.dataset.toeicAttach);
       if ((t = e.target.closest('[data-toeic-detach]'))) return detach(t.dataset.toeicDetach);
       if ((t = e.target.closest('[data-mopt]'))) {
@@ -1017,7 +1057,7 @@ window.VNoteToeic = (function () {
     el('toeic-key-cancel').addEventListener('click', function () { el('overlay-toeic-key').classList.remove('open'); });
     el('toeic-key-clear').addEventListener('click', function () { el('toeic-key-text').value = ''; updateKeyPreview(); });
     if (el('toeic-key-file')) el('toeic-key-file').addEventListener('click', importKeyFile);
-    window.addEventListener('online', function () { if (state.screen === 'list') renderList(); });
+    window.addEventListener('online', function () { drive.promise = null; drive.ok = null; if (state.screen === 'list') renderList(); });
     window.addEventListener('offline', function () { if (state.screen === 'list') renderList(); });
     el('toeic-add-save').addEventListener('click', saveAddModal);
     el('toeic-add-cancel').addEventListener('click', function () { el('overlay-toeic-add').classList.remove('open'); });
