@@ -1,9 +1,9 @@
 /* Offline cache for the TOEIC Reading site. Bump VERSION whenever files change. */
-var VERSION = 'toeic-rc-v4';
+var VERSION = 'toeic-rc-v5';
 var FILES = [
   './', 'index.html', 'manifest.webmanifest',
   'css/base.css', 'css/toeic.css',
-  'js/toeic-keys.js', 'js/core.js', 'js/pdfview.js', 'js/toeic.js',
+  'js/toeic-keys.js', 'js/core.js', 'js/pdfview.js', 'js/mdview.js', 'js/toeic.js',
   'vendor/pdfjs/pdf.min.js', 'vendor/pdfjs/pdf.worker.min.js',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'
 ];

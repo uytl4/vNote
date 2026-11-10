@@ -220,8 +220,12 @@ window.VNoteToeic = (function () {
   // fetch() for file:// pages but still load scripts.
   var PACK_DIR = 'goi-de/';
 
+  // Entries are { id, name, src, kind: 'pdf' | 'md' }. A PDF entry wins over a text (Markdown) entry.
   function packIndex() { return Array.isArray(window.TOEIC_PACK_INDEX) ? window.TOEIC_PACK_INDEX : []; }
-  function packEntry(testId) { return packIndex().filter(function (e) { return e.id === testId; })[0] || null; }
+  function packEntry(testId) {
+    var all = packIndex().filter(function (e) { return e.id === testId; });
+    return all.filter(function (e) { return (e.kind || 'pdf') === 'pdf'; })[0] || all[0] || null;
+  }
 
   function loadScriptOnce(src) {
     return new Promise(function (resolve, reject) {
@@ -239,18 +243,20 @@ window.VNoteToeic = (function () {
     return new Blob([bytes], { type: 'application/pdf' });
   }
 
-  var packBlobs = {};
-  function loadPackBlob(entry) {
-    if (packBlobs[entry.id]) return Promise.resolve(packBlobs[entry.id]);
-    var data = window.TOEIC_PACK_DATA && window.TOEIC_PACK_DATA[entry.id];
-    var p = data ? Promise.resolve() : loadScriptOnce(PACK_DIR + entry.src);
+  var packCache = {};
+  /** Resolve a pack entry to { blob } (PDF) or { md } (Markdown text). */
+  function loadPackData(entry) {
+    var key = entry.src;
+    if (packCache[key]) return Promise.resolve(packCache[key]);
+    var store = window.TOEIC_PACK_DATA || {};
+    var p = store[key] ? Promise.resolve() : loadScriptOnce(PACK_DIR + entry.src);
     return p.then(function () {
-      var b64 = window.TOEIC_PACK_DATA && window.TOEIC_PACK_DATA[entry.id];
-      if (!b64) throw new Error('Gói đề thiếu dữ liệu cho ' + entry.name);
-      var blob = b64ToBlob(b64);
-      delete window.TOEIC_PACK_DATA[entry.id];   // free the big string, keep the binary
-      packBlobs[entry.id] = blob;
-      return blob;
+      var raw = window.TOEIC_PACK_DATA && window.TOEIC_PACK_DATA[key];
+      if (!raw) throw new Error('Gói đề thiếu dữ liệu cho ' + entry.name);
+      var res = typeof raw === 'string' ? { blob: b64ToBlob(raw) } : { md: raw.md };
+      delete window.TOEIC_PACK_DATA[key];   // free the script copy
+      packCache[key] = res;
+      return res;
     });
   }
 
@@ -308,12 +314,14 @@ window.VNoteToeic = (function () {
         return p.then(function () { return DB.get(FILES, t.fileId); }).then(function (row) {
           if (!row || !row.blob) return;
           return blobToBase64(row.blob).then(function (b64) {
-            var src = 'de-' + (i + 1 < 10 ? '0' : '') + (i + 1) + '.js';
-            index.push({ id: t.id, file: row.name || t.file || '', name: t.name, src: src, size: row.blob.size });
-            zip.add(PACK_DIR + src, enc.encode('(window.TOEIC_PACK_DATA=window.TOEIC_PACK_DATA||{})[' + JSON.stringify(t.id) + ']="' + b64 + '";\n'));
+            var src = 'pdf-' + (i + 1 < 10 ? '0' : '') + (i + 1) + '.js';
+            index.push({ id: t.id, kind: 'pdf', file: row.name || t.file || '', name: t.name, src: src, size: row.blob.size });
+            zip.add(PACK_DIR + src, enc.encode('(window.TOEIC_PACK_DATA=window.TOEIC_PACK_DATA||{})[' + JSON.stringify(src) + ']="' + b64 + '";\n'));
           });
         });
       }, Promise.resolve()).then(function () {
+        // Keep text (Markdown) entries already in goi-de/ so extracting over it does not lose them.
+        packIndex().forEach(function (e) { if (e.kind === 'md') index.push(e); });
         zip.add(PACK_DIR + 'index.js', enc.encode('// Gói đề offline cho TOEIC Reading — tạo ' + new Date().toISOString() + '\nwindow.TOEIC_PACK_INDEX = ' + JSON.stringify(index, null, 1) + ';\n'));
         zip.add(PACK_DIR + 'DOC-TOI.txt', enc.encode('Giải nén goi-de.zip vào CÙNG THƯ MỤC với index.html (sẽ có thư mục goi-de/ cạnh index.html).\r\nSau đó mở index.html: các đề trong gói dùng được ngay, không cần mạng, không cần gắn lại.\r\n'));
         var a = document.createElement('a');
@@ -428,7 +436,9 @@ window.VNoteToeic = (function () {
             : '<span class="badge badge-success">✓ Đáp án ' + kc + ' câu' + (t.keySource === 'bundled' ? ' (có sẵn)' : '') + '</span>')
           : '<span class="badge badge-warning">Chưa có đáp án</span>';
         var src = t.fileId ? '<span class="badge badge-success" title="Đã lưu trong trình duyệt — dùng offline">📱 PDF trên máy</span>'
-          : packEntry(t.id) ? '<span class="badge badge-success" title="Có trong thư mục goi-de/ — dùng offline">📦 Có trong gói đề</span>'
+          : packEntry(t.id) ? (packEntry(t.id).kind === 'md'
+            ? '<span class="badge badge-success" title="Nội dung đề dạng chữ trong goi-de/ — dùng offline">📦 Đề dạng chữ</span>'
+            : '<span class="badge badge-success" title="PDF trong thư mục goi-de/ — dùng offline">📦 Có trong gói đề</span>')
           : '<span class="badge badge-warning" title="Chọn file PDF của đề để làm bài">⚠ Chưa có đề</span>';
         var modeOpts = Object.keys(MODES).map(function (k) { return '<option value="' + k + '">' + MODES[k].label + '</option>'; }).join('');
         var link = openUrl(t);
@@ -588,16 +598,18 @@ window.VNoteToeic = (function () {
     if (state.viewer) { state.viewer.destroy(); state.viewer = null; }
   }
 
+  function savePage(test, n) {
+    test.lastPage = n;
+    clearTimeout(state.pageSaveTimer);
+    state.pageSaveTimer = setTimeout(function () {
+      DB.get(TESTS, test.id).then(function (t) { if (t) { t.lastPage = n; DB.put(TESTS, t); } });
+    }, 800);
+  }
+
   function mountViewer(box, test, blob) {
     state.viewer = window.VNotePdfView.mount(box, blob, {
       startPage: test.lastPage || 1,
-      onPage: function (n) {
-        test.lastPage = n;
-        clearTimeout(state.pageSaveTimer);
-        state.pageSaveTimer = setTimeout(function () {
-          DB.get(TESTS, test.id).then(function (t) { if (t) { t.lastPage = n; DB.put(TESTS, t); } });
-        }, 800);
-      }
+      onPage: function (n) { savePage(test, n); }
     });
   }
 
@@ -626,7 +638,14 @@ window.VNoteToeic = (function () {
     var entry = packEntry(test.id);
     if (entry) {
       box.innerHTML = '<div class="toeic-pdf-loading toeic-muted">Đang mở đề từ gói đề offline…</div>';
-      loadPackBlob(entry).then(function (blob) { if (alive()) mountViewer(box, test, blob); })
+      loadPackData(entry).then(function (data) {
+        if (!alive()) return;
+        if (data.blob) return mountViewer(box, test, data.blob);
+        state.viewer = window.VNoteMdView.mount(box, data.md, {
+          imgBase: PACK_DIR + 'anh/', startPage: test.lastPage || 1,
+          onPage: function (n) { savePage(test, n); }
+        });
+      })
         .catch(function (err) {
           if (alive()) box.innerHTML = '<div class="toeic-pdf-loading">' + U.escapeHtml(err.message) + '<br><br>' + attachBtn + '</div>';
         });

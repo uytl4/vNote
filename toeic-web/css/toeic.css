@@ -236,3 +236,16 @@
   .toeic-mbtn { min-width: 30px; height: 38px; padding: 0 5px; }
 }
 .table-wrap { overflow-x: auto; }
+
+/* ---- text (Markdown) test viewer (js/mdview.js) ---- */
+.mdv .pdfv-scroll { background: var(--bg); }
+.mdv-doc { max-width: 820px; margin: 0 auto; padding: 12px 18px 40px; line-height: 1.55; color: var(--text); }
+.mdv-doc h2, .mdv-doc h3, .mdv-doc h4 { margin: 18px 0 8px; }
+.mdv-doc .mdv-page { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .05em; border-top: 2px solid var(--border); padding-top: 10px; }
+.mdv-doc p { margin: 0 0 10px; }
+.mdv-doc blockquote { margin: 0 0 10px; padding: 6px 12px; border-left: 3px solid var(--border); color: var(--text-secondary); font-size: .9em; }
+.mdv-doc hr { display: none; }
+.mdv-img { display: block; max-width: 100%; margin: 8px auto 16px; border: 1px solid var(--border); }
+.mdv-qn { color: var(--accent); }
+.mdv-opt { color: var(--text-secondary); font-weight: 600; }
+.mdv-blank { letter-spacing: -1px; color: var(--text-muted); }

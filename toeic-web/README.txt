@@ -19,6 +19,19 @@ TÍNH NĂNG
   • ⬇ Sao lưu / ⬆ Khôi phục: chuyển đáp án + lịch sử sang máy khác (file .json).
 
 -------------------------------------------------------
+0) BẢN NÀY ĐÃ CÓ SẴN BỘ ĐỀ + ĐÁP ÁN OFFLINE
+-------------------------------------------------------
+  • Thư mục goi-de/ chứa nội dung 30 đề (Part 5–7) dạng chữ, lấy từ các file Markdown
+    bạn gửi (ETS 2022/2023/2024 × 10). Mở index.html là làm bài được ngay, không cần
+    mạng, không cần PDF. Đề có nhãn "📦 Đề dạng chữ".
+  • Chữ là bản OCR nên có chỗ sai/lẫn hai cột (nhất là trang đầu Part 5). Nếu có ảnh
+    trang gốc (ví dụ ETS_2024_Test_01_page_01.jpg), chép chúng vào goi-de/anh/ → web
+    tự hiện ảnh trang ngay dưới phần chữ của mỗi trang.
+  • DAP-AN.txt: bảng đáp án 30 đề để xem/in khi không có mạng (web cũng đã có sẵn).
+  • Muốn xem đề dạng PDF thay cho chữ: làm theo mục 1 bên dưới (PDF được ưu tiên).
+  • Không đăng thư mục goi-de/ công khai (nội dung đề ETS có bản quyền).
+
+-------------------------------------------------------
 1) BỘ ĐỀ OFFLINE — KHÔNG DÙNG GOOGLE DRIVE
 -------------------------------------------------------
   Web chạy hoàn toàn trên máy: đáp án có sẵn, đề lấy từ file PDF trên máy.
