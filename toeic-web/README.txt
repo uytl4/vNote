@@ -19,16 +19,25 @@ TÍNH NĂNG
   • ⬇ Sao lưu / ⬆ Khôi phục: chuyển đáp án + lịch sử sang máy khác (file .json).
 
 -------------------------------------------------------
-1) MÁY TÍNH — KHÔNG CẦN INTERNET
+1) BỘ ĐỀ OFFLINE — KHÔNG DÙNG GOOGLE DRIVE
 -------------------------------------------------------
+  Web chạy hoàn toàn trên máy: đáp án có sẵn, đề lấy từ file PDF trên máy.
+  Không tự lấy đề từ Google Drive (Drive chỉ là nút tuỳ chọn "Mở bằng Google Drive").
+
+  Thiết lập 1 lần:
   1. Giải nén, nhấp đúp index.html (Chrome / Edge / Firefox / Safari).
-  2. Tải các file PDF đề từ Google Drive về máy (cả thư mục cũng được).
-  3. Trong web bấm "📁 Gắn PDF từ máy", chọn TẤT CẢ file PDF vừa tải.
-     → Web tự nhận ra file nào của đề nào (theo tên file gốc trên Drive) và lưu lại
-       trong trình duyệt. Đề có nhãn "📱 PDF trên máy" làm được khi không có mạng.
-     → File nào không nhận ra: dùng "📎 Gắn PDF" ở đúng đề đó, hoặc "＋ Thêm đề".
-  Đáp án đã nằm sẵn trong web, không cần tải thêm gì.
-  (Khi có mạng, đề chưa gắn PDF vẫn xem được trực tiếp từ Google Drive.)
+  2. Có sẵn các file PDF đề trên máy (tải từ Drive bằng mạng khác / điện thoại,
+     GIỮ NGUYÊN TÊN FILE gốc, ví dụ "TEST 1 RC (1).pdf", "ETS 2022 Test 3.pdf").
+  3. Bấm "📁 Gắn PDF từ máy", chọn TẤT CẢ file PDF → web tự nhận file nào của đề nào
+     và lưu trong trình duyệt. File không nhận ra: dùng "📎 Gắn PDF" ở đúng đề.
+  4. Bấm "📦 Xuất gói đề" → được goi-de.zip. Giải nén vào CÙNG THƯ MỤC với index.html
+     (sẽ có thư mục goi-de/ nằm cạnh index.html).
+
+  Sau bước 4, thư mục web này là một BỘ ĐỀ OFFLINE HOÀN CHỈNH (đề + đáp án):
+  chép sang máy khác, USB, hay đưa lên web đều mở được ngay, không cần mạng,
+  không cần gắn lại. Đề có nhãn "📦 Có trong gói đề" / "📱 PDF trên máy" là làm được.
+  Lưu ý: gói đề chứa nội dung đề ETS (có bản quyền) — chỉ dùng cho việc tự học của
+  bạn, đừng đăng công khai.
 
 -------------------------------------------------------
 2) IPHONE / IPAD
@@ -39,16 +48,15 @@ TÍNH NĂNG
   Cách đưa web lên (chọn 1):
    a) GitHub Pages: repo uytl4/vNote → Settings → Pages → Source "Deploy from a branch"
       → chọn nhánh có thư mục toeic-web → Save. Địa chỉ sẽ là
-      https://uytl4.github.io/vNote/toeic-web/
+      https://uytl4.github.io/vNote/toeic-web/  (bản này KHÔNG có gói đề; trên iPhone
+      dùng "📁 Gắn PDF từ máy" với file PDF trong ứng dụng Tệp).
    b) Netlify Drop (https://app.netlify.com/drop): kéo thả thư mục toeic-reading vào.
-   Lưu ý: địa chỉ công khai thì ai có link cũng mở được web (đề vẫn nằm trong Drive
-   của bạn, web chỉ chứa đáp án A/B/C/D).
+   Không đưa thư mục goi-de/ lên địa chỉ công khai (đề ETS có bản quyền).
 
   Trên iPhone:
    1. Mở địa chỉ bằng Safari (khi có mạng) → nút Chia sẻ → "Thêm vào MH chính".
       Mở app 1 lần khi có mạng để nó tự lưu bộ nhớ đệm → sau đó mở được khi offline.
-   2. Lưu PDF đề vào iPhone: trong app Google Drive chọn file → "Mở trong" →
-      "Lưu vào Tệp" (hoặc tải cả thư mục trên máy tính rồi chép sang Tệp/iCloud).
+   2. Lưu PDF đề vào iPhone (ứng dụng Tệp / iCloud Drive), giữ nguyên tên file.
    3. Trong web bấm "📁 Gắn PDF từ máy" → chọn các file PDF trong Tệp.
       Đề sẽ hiển thị bằng trình đọc PDF có sẵn trong web (không cần mạng).
   Mẹo: iPhone giới hạn dung lượng lưu của web; nên gắn từng bộ đề cần làm

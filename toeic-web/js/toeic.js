@@ -205,25 +205,125 @@ window.VNoteToeic = (function () {
 
   function isOnline() { return navigator.onLine !== false; }
 
-  /*
-   * Some networks (school/office proxies) block Google Drive, so the embedded viewer shows a
-   * proxy error page instead of the test. Probe drive.google.com once with an image request:
-   * an image load can't be faked by an HTML error page, so onerror means "Drive not usable".
-   */
-  var drive = { ok: null, promise: null, forced: false };
+  // Google Drive is opt-in only (button in the PDF pane); tests come from this device.
+  var drive = { forced: false };
 
-  function checkDrive(force) {
-    if (!isOnline()) { drive.ok = false; return Promise.resolve(false); }
-    if (drive.promise && !force) return drive.promise;
-    drive.promise = new Promise(function (resolve) {
-      var img = new Image();
-      var timer = setTimeout(function () { finish(false); }, 7000);
-      function finish(ok) { clearTimeout(timer); img.onload = img.onerror = null; resolve(ok); }
-      img.onload = function () { finish(true); };
-      img.onerror = function () { finish(false); };
-      img.src = 'https://drive.google.com/favicon.ico?_=' + Date.now();
-    }).then(function (ok) { drive.ok = ok; return ok; });
-    return drive.promise;
+  /* ---------------------------------------------------------------- */
+  /* Offline test pack (goi-de/): PDFs bundled next to index.html      */
+  /* ---------------------------------------------------------------- */
+  //
+  // "📦 Xuất gói đề" writes every PDF stored in this browser into goi-de.zip:
+  //   goi-de/index.js   → window.TOEIC_PACK_INDEX = [{ id, file, name, src }]
+  //   goi-de/de-01.js … → (window.TOEIC_PACK_DATA ||= {})[id] = '<base64 PDF>'
+  // Extracted next to index.html, every copy of the site (another PC, a USB stick, a web host)
+  // then has the tests built in. Plain <script> files are used because browsers refuse
+  // fetch() for file:// pages but still load scripts.
+  var PACK_DIR = 'goi-de/';
+
+  function packIndex() { return Array.isArray(window.TOEIC_PACK_INDEX) ? window.TOEIC_PACK_INDEX : []; }
+  function packEntry(testId) { return packIndex().filter(function (e) { return e.id === testId; })[0] || null; }
+
+  function loadScriptOnce(src) {
+    return new Promise(function (resolve, reject) {
+      var s = document.createElement('script');
+      s.src = src;
+      s.onload = function () { s.remove(); resolve(); };
+      s.onerror = function () { s.remove(); reject(new Error('Không đọc được ' + src)); };
+      document.head.appendChild(s);
+    });
+  }
+
+  function b64ToBlob(b64) {
+    var bin = atob(b64), n = bin.length, bytes = new Uint8Array(n);
+    for (var i = 0; i < n; i++) bytes[i] = bin.charCodeAt(i);
+    return new Blob([bytes], { type: 'application/pdf' });
+  }
+
+  var packBlobs = {};
+  function loadPackBlob(entry) {
+    if (packBlobs[entry.id]) return Promise.resolve(packBlobs[entry.id]);
+    var data = window.TOEIC_PACK_DATA && window.TOEIC_PACK_DATA[entry.id];
+    var p = data ? Promise.resolve() : loadScriptOnce(PACK_DIR + entry.src);
+    return p.then(function () {
+      var b64 = window.TOEIC_PACK_DATA && window.TOEIC_PACK_DATA[entry.id];
+      if (!b64) throw new Error('Gói đề thiếu dữ liệu cho ' + entry.name);
+      var blob = b64ToBlob(b64);
+      delete window.TOEIC_PACK_DATA[entry.id];   // free the big string, keep the binary
+      packBlobs[entry.id] = blob;
+      return blob;
+    });
+  }
+
+  // --- minimal ZIP writer (stored, no compression; PDFs are already compressed) ---
+  var CRC_TABLE = (function () {
+    var t = new Uint32Array(256);
+    for (var n = 0; n < 256; n++) { var c = n; for (var k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; }
+    return t;
+  })();
+  function crc32(bytes) {
+    var c = 0xFFFFFFFF;
+    for (var i = 0; i < bytes.length; i++) c = CRC_TABLE[(c ^ bytes[i]) & 0xFF] ^ (c >>> 8);
+    return (c ^ 0xFFFFFFFF) >>> 0;
+  }
+  function zipBuilder() {
+    var parts = [], central = [], offset = 0, enc = new TextEncoder();
+    function u16(v) { return [v & 255, (v >>> 8) & 255]; }
+    function u32(v) { return [v & 255, (v >>> 8) & 255, (v >>> 16) & 255, (v >>> 24) & 255]; }
+    return {
+      add: function (name, bytes) {
+        var nameBytes = enc.encode(name), crc = crc32(bytes), size = bytes.length;
+        var local = new Uint8Array([].concat([0x50, 0x4b, 0x03, 0x04], u16(20), u16(0x0800), u16(0), u16(0), u16(0x21),
+          u32(crc), u32(size), u32(size), u16(nameBytes.length), u16(0)));
+        parts.push(local, nameBytes, bytes);
+        central.push(new Uint8Array([].concat([0x50, 0x4b, 0x01, 0x02], u16(20), u16(20), u16(0x0800), u16(0), u16(0), u16(0x21),
+          u32(crc), u32(size), u32(size), u16(nameBytes.length), u16(0), u16(0), u16(0), u16(0), u32(0), u32(offset))), nameBytes);
+        offset += local.length + nameBytes.length + size;
+      },
+      blob: function () {
+        var cdSize = central.reduce(function (n, b) { return n + b.length; }, 0);
+        var count = central.length / 2;
+        var end = new Uint8Array([].concat([0x50, 0x4b, 0x05, 0x06], u16(0), u16(0), u16(count), u16(count), u32(cdSize), u32(offset), u16(0)));
+        return new Blob(parts.concat(central, [end]), { type: 'application/zip' });
+      }
+    };
+  }
+
+  function blobToBase64(blob) {
+    return new Promise(function (resolve, reject) {
+      var r = new FileReader();
+      r.onload = function () { resolve(String(r.result).replace(/^data:[^,]*,/, '')); };
+      r.onerror = function () { reject(r.error); };
+      r.readAsDataURL(blob);
+    });
+  }
+
+  function exportPack() {
+    DB.getAll(TESTS).then(function (tests) {
+      var withFile = tests.filter(function (t) { return t.fileId; })
+        .sort(function (a, b) { return (a.order != null ? a.order : 999) - (b.order != null ? b.order : 999); });
+      if (!withFile.length) { alert('Chưa có đề nào được lưu trên máy.\nBấm "📁 Gắn PDF từ máy" để thêm file PDF đề trước, rồi xuất gói.'); return; }
+      toast('Đang tạo gói đề (' + withFile.length + ' đề)…');
+      var zip = zipBuilder(), enc = new TextEncoder(), index = [];
+      return withFile.reduce(function (p, t, i) {
+        return p.then(function () { return DB.get(FILES, t.fileId); }).then(function (row) {
+          if (!row || !row.blob) return;
+          return blobToBase64(row.blob).then(function (b64) {
+            var src = 'de-' + (i + 1 < 10 ? '0' : '') + (i + 1) + '.js';
+            index.push({ id: t.id, file: row.name || t.file || '', name: t.name, src: src, size: row.blob.size });
+            zip.add(PACK_DIR + src, enc.encode('(window.TOEIC_PACK_DATA=window.TOEIC_PACK_DATA||{})[' + JSON.stringify(t.id) + ']="' + b64 + '";\n'));
+          });
+        });
+      }, Promise.resolve()).then(function () {
+        zip.add(PACK_DIR + 'index.js', enc.encode('// Gói đề offline cho TOEIC Reading — tạo ' + new Date().toISOString() + '\nwindow.TOEIC_PACK_INDEX = ' + JSON.stringify(index, null, 1) + ';\n'));
+        zip.add(PACK_DIR + 'DOC-TOI.txt', enc.encode('Giải nén goi-de.zip vào CÙNG THƯ MỤC với index.html (sẽ có thư mục goi-de/ cạnh index.html).\r\nSau đó mở index.html: các đề trong gói dùng được ngay, không cần mạng, không cần gắn lại.\r\n'));
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(zip.blob());
+        a.download = 'goi-de.zip';
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(function () { URL.revokeObjectURL(a.href); }, 60000);
+        alert('Đã tạo goi-de.zip (' + index.length + ' đề).\n\nGiải nén vào cùng thư mục với index.html — sẽ có thư mục "goi-de" nằm cạnh index.html.\nTừ đó bộ web này (chép sang máy khác / USB / đưa lên web) có sẵn đề, không cần mạng.');
+      });
+    }).catch(function (err) { toast('Không tạo được gói đề: ' + (err && err.message || err)); });
   }
 
   function openUrl(test) {
@@ -300,6 +400,7 @@ window.VNoteToeic = (function () {
     return loadAll().then(function (data) {
       var byTest = {};
       data.tests.forEach(function (t) { byTest[t.id] = t; });
+      var readyCount = data.tests.filter(function (t) { return t.fileId || packEntry(t.id); }).length;
       var inProgress = data.attempts.filter(function (a) { return a.status === 'in-progress' && byTest[a.testId]; });
       var done = data.attempts.filter(function (a) { return a.status === 'done' && byTest[a.testId]; });
 
@@ -326,8 +427,9 @@ window.VNoteToeic = (function () {
             ? '<span class="badge badge-accent" title="Đáp án do AI giải, có thể sai vài câu">🤖 Đáp án AI giải</span>'
             : '<span class="badge badge-success">✓ Đáp án ' + kc + ' câu' + (t.keySource === 'bundled' ? ' (có sẵn)' : '') + '</span>')
           : '<span class="badge badge-warning">Chưa có đáp án</span>';
-        var src = t.fileId ? '<span class="badge badge-success" title="Dùng được khi không có mạng">📱 PDF trên máy</span>'
-          : '<span class="badge badge-accent" title="Cần Internet">☁ Google Drive</span>';
+        var src = t.fileId ? '<span class="badge badge-success" title="Đã lưu trong trình duyệt — dùng offline">📱 PDF trên máy</span>'
+          : packEntry(t.id) ? '<span class="badge badge-success" title="Có trong thư mục goi-de/ — dùng offline">📦 Có trong gói đề</span>'
+          : '<span class="badge badge-warning" title="Chọn file PDF của đề để làm bài">⚠ Chưa có đề</span>';
         var modeOpts = Object.keys(MODES).map(function (k) { return '<option value="' + k + '">' + MODES[k].label + '</option>'; }).join('');
         var link = openUrl(t);
         return '<div class="card toeic-test-card">' +
@@ -341,8 +443,8 @@ window.VNoteToeic = (function () {
           '</div>' +
           '<div class="toeic-test-links">' +
           '<a class="toeic-link" data-toeic-key="' + t.id + '">🔑 ' + (kc ? 'Sửa đáp án' : 'Nhập đáp án') + '</a>' +
-          (link ? '<a class="toeic-link" href="' + link + '" target="_blank" rel="noopener">↗ Drive</a>' : '') +
-          (t.fileId && t.driveId
+          (link ? '<a class="toeic-link" href="' + link + '" target="_blank" rel="noopener" title="Mở file gốc trên Google Drive (cần mạng)">↗ Bản gốc</a>' : '') +
+          (t.fileId
             ? '<a class="toeic-link" data-toeic-detach="' + t.id + '" title="Xoá bản PDF lưu trên máy, quay lại dùng Google Drive">✕ Bỏ PDF máy</a>'
             : (t.fileId ? '' : '<a class="toeic-link" data-toeic-attach="' + t.id + '" title="Lưu file PDF vào máy để làm bài không cần mạng">📎 Gắn PDF</a>')) +
           (t.builtin ? '' : '<a class="toeic-link toeic-link-danger" data-toeic-delete="' + t.id + '">🗑 Xoá</a>') +
@@ -379,24 +481,27 @@ window.VNoteToeic = (function () {
         '<div class="view-header"><div><h1>📝 TOEIC Reading Test</h1>' +
         '<p>Thi thử Part 5–7 (câu 101–200): đề hiển thị từ PDF, phiếu trả lời, đồng hồ 75 phút, chấm điểm &amp; xem lại.</p></div>' +
         '<div class="toolbar" style="margin:0;">' +
-        '<button class="btn" id="toeic-bulk-btn" title="Chọn nhiều file PDF đã tải từ Drive — tự khớp với từng đề">📁 Gắn PDF từ máy</button>' +
+        '<button class="btn" id="toeic-bulk-btn" title="Chọn nhiều file PDF đề — tự khớp với từng đề">📁 Gắn PDF từ máy</button>' +
+        '<button class="btn" id="toeic-pack-btn" title="Đóng gói các đề đã lưu thành thư mục goi-de/ đặt cạnh index.html">📦 Xuất gói đề</button>' +
         '<button class="btn btn-primary" id="toeic-add-btn">＋ Thêm đề</button></div></div>' +
-        (isOnline() && drive.ok === false && !drive.forced ? '<div class="toeic-offline card">🚫 <strong>Mạng này không mở được Google Drive.</strong> Tải các file PDF đề về máy (qua điện thoại hoặc mạng khác), rồi bấm <em>📁 Gắn PDF từ máy</em> và chọn tất cả — web tự nhận đề và lưu lại để dùng.</div>' : '') +
-        (isOnline() ? '' : '<div class="toeic-offline card">📴 <strong>Đang offline.</strong> Các đề có nhãn <em>📱 PDF trên máy</em> làm được ngay; đề <em>☁ Google Drive</em> cần gắn file PDF trước (nút <em>📁 Gắn PDF từ máy</em>).</div>') +
+        (readyCount ? '' :
+          '<div class="toeic-offline card"><strong>📦 Thiết lập bộ đề offline (làm 1 lần):</strong>' +
+          '<ol style="margin:6px 0 0 18px; padding:0; line-height:1.7;">' +
+          '<li>Có sẵn các file PDF đề trên máy (tải từ Drive bằng mạng khác / điện thoại, giữ nguyên tên file).</li>' +
+          '<li>Bấm <em>📁 Gắn PDF từ máy</em>, chọn tất cả — web tự nhận file nào của đề nào.</li>' +
+          '<li>Bấm <em>📦 Xuất gói đề</em> và giải nén <code>goi-de.zip</code> vào cạnh <code>index.html</code>. Từ đó chép cả thư mục web đi đâu cũng có sẵn đề.</li>' +
+          '</ol>Đáp án đã có sẵn trong web.</div>') +
         resumeHtml +
         '<div class="toeic-help card"><strong>Cách dùng:</strong> chọn đề → chọn phần thi → <em>Bắt đầu</em>. Đề hiển thị bên trái, phiếu trả lời bên phải. ' +
         'Phím tắt: <kbd>A</kbd>–<kbd>D</kbd> chọn đáp án, <kbd>↑</kbd>/<kbd>↓</kbd> chuyển câu, <kbd>F</kbd> đánh dấu. ' +
         'Bài làm được lưu tự động — có thể thoát và làm tiếp. ' +
         '<br><strong>Đáp án:</strong> ETS 2023 &amp; 2022 chép từ ảnh đáp án trong Drive; ETS 2024 không có đáp án gốc nên do AI giải (🤖, có thể sai vài câu). Sửa bất kỳ lúc nào ở 🔑, kể cả nhập từ file. ' +
-        '<br><strong>Không có mạng / iPhone:</strong> tải các file PDF đề từ Drive về máy, bấm <em>📁 Gắn PDF từ máy</em> và chọn tất cả — web tự nhận ra file nào của đề nào và lưu lại để làm bài offline.</div>' +
+        '<br><strong>Đề thi:</strong> web chạy hoàn toàn offline, không lấy đề từ Google Drive. Đề lấy từ file PDF trên máy (📁 Gắn PDF từ máy) hoặc từ gói đề <code>goi-de/</code> đặt cạnh index.html (📦 Xuất gói đề).</div>' +
         cards +
         '<h3 style="margin:24px 0 10px;">Lịch sử làm bài</h3>' +
         (historyRows
           ? '<div class="table-wrap"><table class="table"><thead><tr><th>Ngày</th><th>Đề</th><th>Phần</th><th>Kết quả</th><th>Thời gian</th><th></th></tr></thead><tbody>' + historyRows + '</tbody></table></div>'
           : '<p class="toeic-muted">Chưa có bài làm nào.</p>');
-      if (drive.ok === null && isOnline()) {
-        checkDrive().then(function (ok) { if (!ok && state.screen === 'list') renderList(); });
-      }
     });
   }
 
@@ -483,9 +588,22 @@ window.VNoteToeic = (function () {
     if (state.viewer) { state.viewer.destroy(); state.viewer = null; }
   }
 
+  function mountViewer(box, test, blob) {
+    state.viewer = window.VNotePdfView.mount(box, blob, {
+      startPage: test.lastPage || 1,
+      onPage: function (n) {
+        test.lastPage = n;
+        clearTimeout(state.pageSaveTimer);
+        state.pageSaveTimer = setTimeout(function () {
+          DB.get(TESTS, test.id).then(function (t) { if (t) { t.lastPage = n; DB.put(TESTS, t); } });
+        }, 800);
+      }
+    });
+  }
+
   /**
-   * Show the test PDF: a copy stored on this device (offline, rendered with pdf.js) wins over
-   * the Google Drive viewer, which needs Internet. Remembers the last page read per test.
+   * Show the test PDF from this device: a PDF stored in the browser, else the offline pack
+   * (goi-de/) shipped with the site. Google Drive is only used when the user asks for it.
    */
   function mountPdf() {
     var test = state.test;
@@ -493,54 +611,41 @@ window.VNoteToeic = (function () {
     if (!box) return;
     unmountViewer();
     var attachBtn = '<button class="btn btn-sm btn-primary" data-toeic-attach="' + test.id + '">📎 Chọn file PDF trên máy</button>';
+    var alive = function () { return box.isConnected && state.test === test; };
     if (test.fileId) {
       DB.get(FILES, test.fileId).then(function (row) {
-        if (!box.isConnected || state.test !== test) return;
+        if (!alive()) return;
         if (!row || !row.blob) {
           box.innerHTML = '<div class="toeic-pdf-loading">Không tìm thấy file PDF đã lưu cho đề này.<br><br>' + attachBtn + '</div>';
           return;
         }
-        state.viewer = window.VNotePdfView.mount(box, row.blob, {
-          startPage: test.lastPage || 1,
-          onPage: function (n) {
-            test.lastPage = n;
-            clearTimeout(state.pageSaveTimer);
-            state.pageSaveTimer = setTimeout(function () {
-              DB.get(TESTS, test.id).then(function (t) { if (t) { t.lastPage = n; DB.put(TESTS, t); } });
-            }, 800);
-          }
-        });
+        mountViewer(box, test, row.blob);
       });
       return;
     }
-    if (!test.driveId) {
-      box.innerHTML = '<div class="toeic-pdf-loading">Đề này chưa có file PDF.<br><br>' + attachBtn + '</div>';
+    var entry = packEntry(test.id);
+    if (entry) {
+      box.innerHTML = '<div class="toeic-pdf-loading toeic-muted">Đang mở đề từ gói đề offline…</div>';
+      loadPackBlob(entry).then(function (blob) { if (alive()) mountViewer(box, test, blob); })
+        .catch(function (err) {
+          if (alive()) box.innerHTML = '<div class="toeic-pdf-loading">' + U.escapeHtml(err.message) + '<br><br>' + attachBtn + '</div>';
+        });
       return;
     }
-    function showBlocked(offline) {
-      box.innerHTML = '<div class="toeic-pdf-loading">' +
-        (offline ? '<strong>Không có kết nối Internet.</strong><br>'
-          : '<strong>Mạng này không mở được Google Drive</strong> (bị chặn hoặc lỗi kết nối).<br>') +
-        'Hãy dùng file PDF của đề đã tải về máy' +
-        (test.file ? ' (<code>' + U.escapeHtml(test.file) + '</code>)' : '') + ' — làm được cả khi không có mạng.<br><br>' + attachBtn +
-        (offline ? '' : ' <button class="btn btn-sm" data-toeic-forcedrive="1">Vẫn thử mở Google Drive</button>') +
-        '<p class="toeic-muted toeic-small">Phiếu trả lời và đồng hồ vẫn dùng bình thường. Chưa có file? Tải đề từ Drive bằng điện thoại / mạng khác rồi chép sang máy này.</p></div>';
-    }
-    function showDrive() {
+    if (drive.forced && test.driveId) {
       var link = openUrl(test);
       box.innerHTML = '<iframe src="' + driveSrc(test) + '" title="' + U.escapeHtml(test.name) + '" allow="autoplay"></iframe>' +
         '<div class="toeic-pdf-tools">' +
-        '<button class="toeic-pdf-open" data-toeic-attach="' + test.id + '" title="Đề không hiện (mạng chặn Drive)? Dùng file PDF trên máy">📎 Dùng PDF trên máy</button>' +
+        '<button class="toeic-pdf-open" data-toeic-attach="' + test.id + '">📎 Dùng PDF trên máy</button>' +
         (link ? '<a class="toeic-pdf-open" href="' + link + '" target="_blank" rel="noopener">↗ Mở tab mới</a>' : '') +
         '</div>';
+      return;
     }
-    if (!isOnline()) return showBlocked(true);
-    if (drive.forced) return showDrive();
-    box.innerHTML = '<div class="toeic-pdf-loading toeic-muted">Đang kiểm tra kết nối tới Google Drive…</div>';
-    checkDrive().then(function (ok) {
-      if (!box.isConnected || state.test !== test) return;
-      if (ok) showDrive(); else showBlocked(false);
-    });
+    box.innerHTML = '<div class="toeic-pdf-loading"><strong>Đề này chưa có trên máy.</strong><br>' +
+      'Chọn file PDF của đề' + (test.file ? ' (<code>' + U.escapeHtml(test.file) + '</code>)' : '') +
+      ' — web lưu lại để dùng offline.<br><br>' + attachBtn +
+      (test.driveId ? ' <button class="btn btn-sm" data-toeic-forcedrive="1">Mở bằng Google Drive (cần mạng)</button>' : '') +
+      '<p class="toeic-muted toeic-small">Phiếu trả lời và đồng hồ vẫn dùng bình thường.</p></div>';
   }
 
   function renderExam() {
@@ -934,7 +1039,7 @@ window.VNoteToeic = (function () {
   }
 
   function detach(testId) {
-    if (!confirm('Xoá bản PDF đã lưu trên máy cho đề này? (Đề vẫn xem được qua Google Drive khi có mạng.)')) return;
+    if (!confirm('Xoá bản PDF đã lưu trong trình duyệt cho đề này?' + (packEntry(testId) ? ' (Đề vẫn có trong gói đề goi-de/.)' : ''))) return;
     DB.get(TESTS, testId).then(function (t) {
       if (!t || !t.fileId) return;
       var fid = t.fileId;
@@ -998,6 +1103,7 @@ window.VNoteToeic = (function () {
 
       if (e.target.closest('#toeic-add-btn')) return openAddModal();
       if (e.target.closest('#toeic-bulk-btn')) return attachBulk();
+      if (e.target.closest('#toeic-pack-btn')) return exportPack();
       if (e.target.closest('[data-toeic-forcedrive]')) { drive.forced = true; return mountPdf(); }
       if ((t = e.target.closest('[data-toeic-attach]'))) return attachOne(t.dataset.toeicAttach);
       if ((t = e.target.closest('[data-toeic-detach]'))) return detach(t.dataset.toeicDetach);
@@ -1057,8 +1163,7 @@ window.VNoteToeic = (function () {
     el('toeic-key-cancel').addEventListener('click', function () { el('overlay-toeic-key').classList.remove('open'); });
     el('toeic-key-clear').addEventListener('click', function () { el('toeic-key-text').value = ''; updateKeyPreview(); });
     if (el('toeic-key-file')) el('toeic-key-file').addEventListener('click', importKeyFile);
-    window.addEventListener('online', function () { drive.promise = null; drive.ok = null; if (state.screen === 'list') renderList(); });
-    window.addEventListener('offline', function () { if (state.screen === 'list') renderList(); });
+
     el('toeic-add-save').addEventListener('click', saveAddModal);
     el('toeic-add-cancel').addEventListener('click', function () { el('overlay-toeic-add').classList.remove('open'); });
 
