@@ -104,6 +104,7 @@ window.VNoteToeic = (function () {
     tickCount: 0,
     reviewFilter: 'all',
     viewer: null,
+    filter: (function () { try { return localStorage.getItem('toeic-filter') || 'all'; } catch (e) { return 'all'; } })(),
     pageSaveTimer: null
   };
 
@@ -421,53 +422,58 @@ window.VNoteToeic = (function () {
       var inProgress = data.attempts.filter(function (a) { return a.status === 'in-progress' && byTest[a.testId]; });
       var done = data.attempts.filter(function (a) { return a.status === 'done' && byTest[a.testId]; });
 
-      var resumeHtml = inProgress.map(function (a) {
-        var t = byTest[a.testId];
-        var answered = Object.keys(a.answers || {}).length;
-        return '<div class="toeic-resume card">' +
-          '<div><strong>⏸ Đang làm dở:</strong> ' + U.escapeHtml(t.name) + ' · ' + U.escapeHtml(MODES[a.mode].label) +
-          ' <span class="toeic-muted">— đã trả lời ' + answered + '/' + (a.to - a.from + 1) + ', đã dùng ' + fmtClock(a.elapsedSec || 0) + '</span></div>' +
-          '<div class="toolbar" style="margin:0;"><button class="btn btn-sm btn-primary" data-toeic-resume="' + a.id + '">▶ Tiếp tục</button>' +
-          '<button class="btn btn-sm" data-toeic-discard="' + a.id + '">Bỏ</button></div></div>';
-      }).join('');
-
-      function card(t) {
-        var attempts = done.filter(function (a) { return a.testId === t.id; });
+      function bestOf(t) {
         var best = null;
-        attempts.forEach(function (a) {
+        done.forEach(function (a) {
+          if (a.testId !== t.id) return;
           var sc = score(a, t);
           if (sc.keyed && (best === null || sc.correct / sc.keyed > best.ratio)) best = { ratio: sc.correct / sc.keyed, text: sc.correct + '/' + sc.keyed };
         });
+        return best;
+      }
+
+      function card(t) {
+        var attempts = done.filter(function (a) { return a.testId === t.id; });
+        var best = bestOf(t);
         var kc = keyCount(t);
-        var keyBadge = kc
+        var pe = packEntry(t.id);
+        var ready = !!(t.fileId || pe);
+        var keyChip = kc
           ? (t.keySource === 'ai'
-            ? '<span class="badge badge-accent" title="Đáp án do AI giải, có thể sai vài câu">🤖 Đáp án AI giải</span>'
-            : '<span class="badge badge-success">✓ Đáp án ' + kc + ' câu' + (t.keySource === 'bundled' ? ' (có sẵn)' : '') + '</span>')
-          : '<span class="badge badge-warning">Chưa có đáp án</span>';
-        var src = t.fileId ? '<span class="badge badge-success" title="Đã lưu trong trình duyệt — dùng offline">📱 Đề trên máy</span>'
-          : packEntry(t.id) ? (packEntry(t.id).kind === 'md'
-            ? '<span class="badge badge-success" title="Nội dung đề dạng chữ trong goi-de/ — dùng offline">📦 Đề dạng chữ</span>'
-            : '<span class="badge badge-success" title="PDF trong thư mục goi-de/ — dùng offline">📦 Có trong gói đề</span>')
-          : '<span class="badge badge-warning" title="Chọn file PDF của đề để làm bài">⚠ Chưa có đề</span>';
+            ? '<span class="chip chip-ai" title="Bộ đề gốc không có đáp án — do AI giải, có thể sai vài câu">🤖 Đáp án AI</span>'
+            : '<span class="chip chip-ok" title="' + kc + ' câu' + (t.keySource === 'bundled' ? ', chép từ đáp án gốc' : '') + '">✓ Đáp án</span>')
+          : '<span class="chip chip-warn">Chưa có đáp án</span>';
+        var srcChip = t.fileId ? '<span class="chip chip-ok" title="Đã lưu trong máy — dùng offline">📱 Đề trên máy</span>'
+          : pe ? (pe.kind === 'md'
+            ? '<span class="chip chip-ok" title="Nội dung đề dạng chữ trong goi-de/ — dùng offline">📦 Đề dạng chữ</span>'
+            : '<span class="chip chip-ok" title="PDF trong thư mục goi-de/ — dùng offline">📦 Có trong gói đề</span>')
+          : '<span class="chip chip-warn" title="Gắn file đề (PDF hoặc .md) để làm bài">⚠ Chưa có đề</span>';
         var modeOpts = Object.keys(MODES).map(function (k) { return '<option value="' + k + '">' + MODES[k].label + '</option>'; }).join('');
         var link = openUrl(t);
-        return '<div class="card toeic-test-card">' +
-          '<div class="toeic-test-head"><div class="toeic-test-name">' + U.escapeHtml(t.name) + '</div>' + src + '</div>' +
-          (t.note ? '<div class="toeic-muted toeic-small">' + U.escapeHtml(t.note) + '</div>' : '') +
-          '<div class="toeic-test-meta">' + keyBadge +
-          '<span class="toeic-muted toeic-small">' + attempts.length + ' lần làm' + (best ? ' · cao nhất ' + best.text : '') + '</span></div>' +
+        var pct = best ? Math.round(best.ratio * 100) : null;
+        var num = t.builtin && /Test (\d+)$/.test(t.name) ? t.name.match(/Test (\d+)$/)[1] : null;
+        var title = num ? 'Test ' + num : U.escapeHtml(t.name.replace(/^ETS \d{4} · /, ''));
+        var ring = '<div class="tx-ring' + (pct === null ? ' is-empty' : '') + '" style="--p:' + (pct || 0) + '" title="' + (best ? 'Cao nhất ' + best.text : 'Chưa làm') + '">' +
+          '<span>' + (pct === null ? '—' : pct + '%') + '</span></div>';
+        return '<article class="card toeic-test-card tx-card' + (ready ? '' : ' is-locked') + '" data-name="' + U.escapeHtml(t.name.toLowerCase()) + '">' +
+          '<div class="tx-card-top">' +
+          '<div class="tx-card-title"><span class="tx-card-set">' + U.escapeHtml(t.builtin ? (t.set || '') : 'Đề tự thêm') + '</span>' +
+          '<h4 class="toeic-test-name">' + title + '</h4></div>' + ring + '</div>' +
+          '<div class="toeic-test-meta">' + srcChip + keyChip + '</div>' +
+          (t.note ? '<p class="tx-card-note">' + U.escapeHtml(t.note) + '</p>' : '') +
+          '<div class="tx-card-stat">' + (attempts.length ? attempts.length + ' lần làm' + (best ? ' · cao nhất <b>' + best.text + '</b>' : '') : 'Chưa làm lần nào') + '</div>' +
           '<div class="toeic-test-actions">' +
-          '<select class="field-input" data-toeic-mode="' + t.id + '">' + modeOpts + '</select>' +
+          '<select class="field-input" data-toeic-mode="' + t.id + '" aria-label="Phần thi">' + modeOpts + '</select>' +
           '<button class="btn btn-primary btn-sm" data-toeic-start="' + t.id + '">▶ Bắt đầu</button>' +
           '</div>' +
           '<div class="toeic-test-links">' +
-          '<a class="toeic-link" data-toeic-key="' + t.id + '">🔑 ' + (kc ? 'Sửa đáp án' : 'Nhập đáp án') + '</a>' +
-          (link ? '<a class="toeic-link" href="' + link + '" target="_blank" rel="noopener" title="Mở file gốc trên Google Drive (cần mạng)">↗ Bản gốc</a>' : '') +
+          '<a class="toeic-link" href="javascript:void 0" data-toeic-key="' + t.id + '">🔑 ' + (kc ? 'Đáp án' : 'Nhập đáp án') + '</a>' +
           (t.fileId
-            ? '<a class="toeic-link" data-toeic-detach="' + t.id + '" title="Xoá bản PDF lưu trên máy, quay lại dùng Google Drive">✕ Bỏ PDF máy</a>'
-            : (t.fileId ? '' : '<a class="toeic-link" data-toeic-attach="' + t.id + '" title="Lưu file đề (PDF hoặc .md) vào máy để làm bài không cần mạng">📎 Gắn đề</a>')) +
-          (t.builtin ? '' : '<a class="toeic-link toeic-link-danger" data-toeic-delete="' + t.id + '">🗑 Xoá</a>') +
-          '</div></div>';
+            ? '<a class="toeic-link" href="javascript:void 0" data-toeic-detach="' + t.id + '" title="Xoá bản đề đã lưu trong máy">✕ Bỏ đề máy</a>'
+            : '<a class="toeic-link" href="javascript:void 0" data-toeic-attach="' + t.id + '" title="Lưu file đề (PDF hoặc .md) vào máy để làm bài không cần mạng">📎 Gắn đề</a>') +
+          (link ? '<a class="toeic-link" href="' + link + '" target="_blank" rel="noopener" title="Mở file gốc trên Google Drive (cần mạng)">↗ Bản gốc</a>' : '') +
+          (t.builtin ? '' : '<a class="toeic-link toeic-link-danger" href="javascript:void 0" data-toeic-delete="' + t.id + '">🗑 Xoá</a>') +
+          '</div></article>';
       }
 
       // Group cards by set (ETS 2024 / 2023 / 2022 / user-added), keeping catalog order.
@@ -477,51 +483,106 @@ window.VNoteToeic = (function () {
         if (!groupOf[g]) { groupOf[g] = []; groups.push(g); }
         groupOf[g].push(t);
       });
-      var cards = groups.map(function (g) {
+      var filter = state.filter && (state.filter === 'all' || groupOf[state.filter]) ? state.filter : 'all';
+      var tabs = ['all'].concat(groups).map(function (g) {
+        var n = g === 'all' ? data.tests.length : groupOf[g].length;
+        return '<button class="tx-tab' + (g === filter ? ' is-active' : '') + '" role="tab" aria-selected="' + (g === filter) + '" data-toeic-tab="' + U.escapeHtml(g) + '">' +
+          (g === 'all' ? 'Tất cả' : U.escapeHtml(g)) + '<span>' + n + '</span></button>';
+      }).join('');
+      var cards = groups.filter(function (g) { return filter === 'all' || g === filter; }).map(function (g) {
         var tests = groupOf[g];
-        var keyed = tests.filter(function (t) { return keyCount(t) >= 100; }).length;
-        var src = SETS[g] ? ' · <a class="toeic-link" href="' + SETS[g] + '" target="_blank" rel="noopener">thư mục Drive ↗</a>' : '';
-        return '<div class="toeic-set"><h3 class="toeic-set-title">' + U.escapeHtml(g) +
-          '<span class="toeic-muted toeic-small"> — ' + tests.length + ' mục, ' + keyed + ' có đủ đáp án' + src + '</span></h3>' +
-          '<div class="toeic-grid">' + tests.map(card).join('') + '</div></div>';
+        var ok = tests.filter(function (t) { return t.fileId || packEntry(t.id); }).length;
+        return '<section class="toeic-set"><h3 class="toeic-set-title">' + U.escapeHtml(g) +
+          '<span class="toeic-muted toeic-small">' + ok + '/' + tests.length + ' đề sẵn sàng</span></h3>' +
+          '<div class="toeic-grid">' + tests.map(card).join('') + '</div></section>';
+      }).join('');
+
+      // Dashboard numbers
+      var scored = done.map(function (a) { return { a: a, sc: score(a, byTest[a.testId]) }; }).filter(function (x) { return x.sc.keyed; });
+      var avg = scored.length ? Math.round(scored.reduce(function (n, x) { return n + x.sc.correct / x.sc.keyed; }, 0) / scored.length * 100) : null;
+      var bestFull = scored.filter(function (x) { return x.a.mode === 'full' && x.sc.keyed === 100; })
+        .reduce(function (m, x) { return Math.max(m, estimateReading(x.sc.correct)); }, 0);
+      var stat = function (v, l, sub) { return '<div class="tx-stat"><div class="tx-stat-v">' + v + '</div><div class="tx-stat-l">' + l + '</div>' + (sub ? '<div class="tx-stat-s">' + sub + '</div>' : '') + '</div>'; };
+
+      var resumeHtml = inProgress.map(function (a) {
+        var t = byTest[a.testId];
+        var answered = Object.keys(a.answers || {}).length, total = a.to - a.from + 1;
+        return '<div class="toeic-resume tx-resume">' +
+          '<div class="tx-resume-main"><div class="tx-resume-k">⏸ Đang làm dở</div>' +
+          '<div class="tx-resume-t">' + U.escapeHtml(t.name) + ' · ' + U.escapeHtml(MODES[a.mode].label) + '</div>' +
+          '<div class="tx-progress"><div style="width:' + Math.round(answered / total * 100) + '%"></div></div>' +
+          '<div class="toeic-muted toeic-small">Đã trả lời ' + answered + '/' + total + ' · đã dùng ' + fmtClock(a.elapsedSec || 0) + '</div></div>' +
+          '<div class="tx-resume-act"><button class="btn btn-primary" data-toeic-resume="' + a.id + '">▶ Làm tiếp</button>' +
+          '<button class="btn btn-ghost" data-toeic-discard="' + a.id + '">Bỏ</button></div></div>';
       }).join('');
 
       var historyRows = done.slice(0, 50).map(function (a) {
         var t = byTest[a.testId];
         var sc = score(a, t);
-        var result = sc.keyed ? sc.correct + '/' + sc.keyed + (a.mode === 'full' && sc.keyed === 100 ? ' · ~' + estimateReading(sc.correct) : '') : '<span class="toeic-muted">chưa chấm</span>';
-        return '<tr><td>' + U.formatDate(a.finishedAt || a.startedAt) + '</td><td>' + U.escapeHtml(t.name) + '</td>' +
+        var pct = sc.keyed ? Math.round(sc.correct / sc.keyed * 100) : null;
+        var tone = pct === null ? '' : pct >= 80 ? ' is-good' : pct >= 50 ? ' is-mid' : ' is-low';
+        var result = sc.keyed ? '<span class="tx-pill' + tone + '">' + sc.correct + '/' + sc.keyed + '</span>' + (a.mode === 'full' && sc.keyed === 100 ? ' <span class="toeic-muted">~' + estimateReading(sc.correct) + '</span>' : '') : '<span class="toeic-muted">chưa chấm</span>';
+        return '<tr><td>' + U.formatDate(a.finishedAt || a.startedAt) + '</td><td><b>' + U.escapeHtml(t.name) + '</b></td>' +
           '<td>' + U.escapeHtml(MODES[a.mode].label) + '</td><td>' + result + '</td><td>' + fmtClock(a.elapsedSec || 0) + '</td>' +
-          '<td style="white-space:nowrap;"><button class="btn btn-sm" data-toeic-view="' + a.id + '">Xem</button> ' +
-          '<button class="btn btn-sm" data-toeic-del-attempt="' + a.id + '" title="Xoá">✕</button></td></tr>';
+          '<td class="tx-row-act"><button class="btn btn-sm" data-toeic-view="' + a.id + '">Xem lại</button> ' +
+          '<button class="btn btn-sm btn-ghost" data-toeic-del-attempt="' + a.id + '" title="Xoá" aria-label="Xoá">✕</button></td></tr>';
       }).join('');
 
       root().innerHTML =
-        '<div class="view-header"><div><h1>📝 TOEIC Reading Test</h1>' +
-        '<p>Thi thử Part 5–7 (câu 101–200): đề hiển thị từ PDF, phiếu trả lời, đồng hồ 75 phút, chấm điểm &amp; xem lại.</p></div>' +
-        '<div class="toolbar" style="margin:0;">' +
+        '<header class="tx-hero">' +
+        '<div class="tx-hero-text"><h1>Luyện TOEIC Reading</h1>' +
+        '<p>Part 5–7 · câu 101–200 · 30 đề ETS 2022–2024 · chạy offline, có sẵn đáp án</p></div>' +
+        '<div class="tx-hero-act">' +
         '<button class="btn" id="toeic-bulk-btn" title="Chọn nhiều file đề (PDF hoặc .md) — tự khớp với từng đề">📁 Gắn đề từ máy</button>' +
         '<button class="btn" id="toeic-pack-btn" title="Đóng gói các đề đã lưu thành thư mục goi-de/ đặt cạnh index.html">📦 Xuất gói đề</button>' +
-        '<button class="btn btn-primary" id="toeic-add-btn">＋ Thêm đề</button></div></div>' +
-        (readyCount ? '' :
-          '<div class="toeic-offline card"><strong>📦 Thiết lập bộ đề offline (làm 1 lần):</strong>' +
-          '<ol style="margin:6px 0 0 18px; padding:0; line-height:1.7;">' +
-          '<li>Có sẵn các file PDF đề trên máy (tải từ Drive bằng mạng khác / điện thoại, giữ nguyên tên file).</li>' +
-          '<li>Bấm <em>📁 Gắn đề từ máy</em>, chọn tất cả — web tự nhận file nào của đề nào.</li>' +
-          '<li>Bấm <em>📦 Xuất gói đề</em> và giải nén <code>goi-de.zip</code> vào cạnh <code>index.html</code>. Từ đó chép cả thư mục web đi đâu cũng có sẵn đề.</li>' +
-          '</ol>Đáp án đã có sẵn trong web.</div>') +
+        '<button class="btn btn-primary" id="toeic-add-btn">＋ Thêm đề</button></div>' +
+        '<div class="tx-stats">' +
+        stat(readyCount + '<small>/' + data.tests.length + '</small>', 'Đề sẵn sàng') +
+        stat(done.length, 'Bài đã làm', inProgress.length ? inProgress.length + ' đang làm dở' : '') +
+        stat(bestFull ? '~' + bestFull : '—', 'Reading cao nhất', bestFull ? 'thang 495, ước tính' : 'làm 1 đề Full để có điểm') +
+        stat(avg === null ? '—' : avg + '%', 'Tỉ lệ đúng TB', scored.length ? scored.length + ' bài đã chấm' : '') +
+        '</div></header>' +
         resumeHtml +
-        '<div class="toeic-help card"><strong>Cách dùng:</strong> chọn đề → chọn phần thi → <em>Bắt đầu</em>. Đề hiển thị bên trái, phiếu trả lời bên phải. ' +
-        'Phím tắt: <kbd>A</kbd>–<kbd>D</kbd> chọn đáp án, <kbd>↑</kbd>/<kbd>↓</kbd> chuyển câu, <kbd>F</kbd> đánh dấu. ' +
-        'Bài làm được lưu tự động — có thể thoát và làm tiếp. ' +
-        '<br><strong>Đáp án:</strong> ETS 2023 &amp; 2022 chép từ ảnh đáp án trong Drive; ETS 2024 không có đáp án gốc nên do AI giải (🤖, có thể sai vài câu). Sửa bất kỳ lúc nào ở 🔑, kể cả nhập từ file. ' +
-        '<br><strong>Đề thi:</strong> web chạy hoàn toàn offline, không lấy đề từ Google Drive. Đề lấy từ file trên máy — PDF hoặc .md (📁 Gắn đề từ máy) hoặc từ gói đề <code>goi-de/</code> đặt cạnh index.html (📦 Xuất gói đề).</div>' +
-        cards +
-        '<h3 style="margin:24px 0 10px;">Lịch sử làm bài</h3>' +
+        (readyCount ? '' :
+          '<div class="toeic-offline tx-callout"><strong>📦 Thiết lập bộ đề offline (làm 1 lần)</strong>' +
+          '<ol><li>Có sẵn file đề trên máy (PDF hoặc .md), giữ nguyên tên file.</li>' +
+          '<li>Bấm <em>📁 Gắn đề từ máy</em>, chọn tất cả — web tự nhận file nào của đề nào.</li>' +
+          '<li>Tuỳ chọn: <em>📦 Xuất gói đề</em> rồi giải nén <code>goi-de.zip</code> cạnh <code>index.html</code> để mang cả bộ đề đi máy khác.</li></ol>' +
+          'Đáp án đã có sẵn trong web.</div>') +
+        '<div class="tx-toolbar">' +
+        '<div class="tx-tabs" role="tablist" aria-label="Bộ đề">' + tabs + '</div>' +
+        '<label class="tx-search"><span aria-hidden="true">🔍</span><input type="search" id="toeic-search" placeholder="Tìm đề… (vd: 2023 test 5)" autocomplete="off"></label>' +
+        '</div>' +
+        '<details class="toeic-help tx-help"><summary>Hướng dẫn &amp; phím tắt</summary><div>' +
+        '<p><b>Làm bài:</b> chọn đề → chọn phần thi → <em>Bắt đầu</em>. Bài làm tự lưu, thoát ra làm tiếp được; hết giờ tự nộp.</p>' +
+        '<p><b>Phím tắt:</b> <kbd>A</kbd>–<kbd>D</kbd> chọn đáp án · <kbd>↑</kbd>/<kbd>↓</kbd> chuyển câu · <kbd>F</kbd> đánh dấu. Trên điện thoại dùng thanh A B C D ở đáy màn hình.</p>' +
+        '<p><b>Đáp án:</b> ETS 2023 &amp; 2022 chép từ đáp án gốc; ETS 2024 không có đáp án gốc nên do AI giải (🤖, có thể sai vài câu). Sửa bất kỳ lúc nào ở 🔑, kể cả nhập từ file.</p>' +
+        '<p><b>Đề thi:</b> chạy hoàn toàn offline. Đề lấy từ file trên máy (📁) hoặc thư mục <code>goi-de/</code> cạnh index.html (📦). Google Drive chỉ dùng khi bạn bấm mở.</p>' +
+        '</div></details>' +
+        '<div id="toeic-cards">' + cards + '</div>' +
+        '<p class="tx-empty" id="toeic-noresult" hidden>Không có đề nào khớp tìm kiếm.</p>' +
+        '<section class="tx-history"><h3 class="toeic-set-title">Lịch sử làm bài</h3>' +
         (historyRows
-          ? '<div class="table-wrap"><table class="table"><thead><tr><th>Ngày</th><th>Đề</th><th>Phần</th><th>Kết quả</th><th>Thời gian</th><th></th></tr></thead><tbody>' + historyRows + '</tbody></table></div>'
-          : '<p class="toeic-muted">Chưa có bài làm nào.</p>');
+          ? '<div class="table-wrap"><table class="table tx-table"><thead><tr><th>Ngày</th><th>Đề</th><th>Phần</th><th>Kết quả</th><th>Thời gian</th><th></th></tr></thead><tbody>' + historyRows + '</tbody></table></div>'
+          : '<div class="tx-empty">Chưa có bài làm nào — chọn một đề ở trên để bắt đầu.</div>') +
+        '</section>';
     });
+  }
+
+  function applySearch() {
+    var q = (el('toeic-search') && el('toeic-search').value || '').toLowerCase().trim();
+    var words = q.split(/\s+/).filter(Boolean);
+    var shown = 0;
+    root().querySelectorAll('.tx-card').forEach(function (c) {
+      var hit = words.every(function (w) { return c.dataset.name.indexOf(w) !== -1; });
+      c.hidden = !hit;
+      if (hit) shown++;
+    });
+    root().querySelectorAll('.toeic-set').forEach(function (sec) {
+      sec.hidden = !sec.querySelector('.tx-card:not([hidden])');
+    });
+    var nr = el('toeic-noresult');
+    if (nr) nr.hidden = shown > 0;
   }
 
   /* ---------------------------------------------------------------- */
@@ -694,6 +755,8 @@ window.VNoteToeic = (function () {
       '<button class="btn btn-sm" id="toeic-exit">⏸ Lưu &amp; thoát</button>' +
       '<button class="btn btn-sm btn-primary" id="toeic-submit">✔ Nộp bài</button></div>';
     root().innerHTML = examLayout(sheetHtml(false), bar);
+    var ex = root().querySelector('.toeic-exam .toeic-bar');
+    if (ex) ex.insertAdjacentHTML('afterend', '<div class="tx-exambar" aria-hidden="true"><div class="tx-exambar-time" id="toeic-timebar"></div><div class="tx-exambar-ans" id="toeic-ansbar"></div></div>');
     mountPdf();
     updateProgress();
     focusQuestion(state.current, false);
@@ -737,8 +800,11 @@ window.VNoteToeic = (function () {
   }
 
   function updateProgress() {
+    var a = state.attempt, done = Object.keys(a.answers).length;
     var n = el('toeic-answered');
-    if (n) n.textContent = Object.keys(state.attempt.answers).length;
+    if (n) n.textContent = done;
+    var bar = el('toeic-ansbar');
+    if (bar) bar.style.width = (done / (a.to - a.from + 1) * 100) + '%';
   }
 
   function focusQuestion(q, scroll) {
@@ -808,6 +874,8 @@ window.VNoteToeic = (function () {
       var left = limit - a.elapsedSec;
       t.textContent = '⏱ ' + fmtClock(left);
       t.classList.toggle('warn', left <= 300);
+      var tb = el('toeic-timebar');
+      if (tb) tb.style.width = Math.min(100, a.elapsedSec / limit * 100) + '%';
     } else {
       t.textContent = '⏱ ' + fmtClock(a.elapsedSec) + ' (không giới hạn)';
     }
@@ -871,7 +939,13 @@ window.VNoteToeic = (function () {
       var pct = Math.round(sc.correct / sc.keyed * 100);
       var est = a.mode === 'full' && sc.keyed === 100
         ? '<div class="stat-card"><div class="stat-value">~' + estimateReading(sc.correct) + '</div><div class="stat-label">Điểm Reading ước tính /495</div></div>' : '';
-      summary = '<div class="stat-row toeic-stats">' +
+      var verdict = pct >= 90 ? 'Xuất sắc! 🎉' : pct >= 75 ? 'Rất tốt 👍' : pct >= 55 ? 'Khá — tiếp tục luyện nhé' : 'Cần luyện thêm 💪';
+      summary = '<div class="tx-result">' +
+        '<div class="tx-ring tx-ring-lg" style="--p:' + pct + '"><span>' + pct + '%<small>' + sc.correct + '/' + sc.keyed + ' câu</small></span></div>' +
+        '<div class="tx-result-text"><div class="tx-result-verdict">' + verdict + '</div>' +
+        (a.mode === 'full' && sc.keyed === 100 ? '<div class="tx-result-est">Điểm Reading ước tính <b>~' + estimateReading(sc.correct) + '</b> / 495</div>' : '') +
+        '<div class="toeic-muted toeic-small">' + U.escapeHtml(MODES[a.mode].label) + ' · thời gian ' + fmtClock(a.elapsedSec) + '</div></div></div>' +
+        '<div class="stat-row toeic-stats">' +
         '<div class="stat-card"><div class="stat-value">' + sc.correct + '/' + sc.keyed + '</div><div class="stat-label">Câu đúng (' + pct + '%)</div></div>' +
         est +
         '<div class="stat-card"><div class="stat-value">' + sc.wrong + '</div><div class="stat-label">Câu sai</div></div>' +
@@ -1141,6 +1215,11 @@ window.VNoteToeic = (function () {
       if ((t = e.target.closest('[data-toeic-key]'))) return openKeyModal(t.dataset.toeicKey);
       if (!view) return;
 
+      if ((t = e.target.closest('[data-toeic-tab]'))) {
+        state.filter = t.dataset.toeicTab;
+        try { localStorage.setItem('toeic-filter', state.filter); } catch (err) { /* ignore */ }
+        return renderList();
+      }
       if (e.target.closest('#toeic-add-btn')) return openAddModal();
       if (e.target.closest('#toeic-bulk-btn')) return attachBulk();
       if (e.target.closest('#toeic-pack-btn')) return exportPack();
@@ -1197,6 +1276,7 @@ window.VNoteToeic = (function () {
       }
     });
 
+    document.addEventListener('input', function (e) { if (e.target && e.target.id === 'toeic-search') applySearch(); });
     el('toeic-key-text').addEventListener('input', updateKeyPreview);
     el('toeic-key-start').addEventListener('input', updateKeyPreview);
     el('toeic-key-save').addEventListener('click', saveKey);
