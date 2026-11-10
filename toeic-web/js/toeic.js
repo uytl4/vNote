@@ -437,7 +437,7 @@ window.VNoteToeic = (function () {
         var best = bestOf(t);
         var kc = keyCount(t);
         var pe = packEntry(t.id);
-        var ready = !!(t.fileId || pe);
+        var ready = true;
         var keyChip = kc
           ? (t.keySource === 'ai'
             ? '<span class="chip chip-ai" title="Bộ đề gốc không có đáp án — do AI giải, có thể sai vài câu">🤖 Đáp án AI</span>'
@@ -447,7 +447,7 @@ window.VNoteToeic = (function () {
           : pe ? (pe.kind === 'md'
             ? '<span class="chip chip-ok" title="Nội dung đề dạng chữ trong goi-de/ — dùng offline">📦 Đề dạng chữ</span>'
             : '<span class="chip chip-ok" title="PDF trong thư mục goi-de/ — dùng offline">📦 Có trong gói đề</span>')
-          : '<span class="chip chip-warn" title="Gắn file đề (PDF hoặc .md) để làm bài">⚠ Chưa có đề</span>';
+          : '<span class="chip" title="Làm bài trên sách / file đề của bạn, tô đáp án và chấm điểm trong app. Gắn đề (tuỳ chọn) để xem đề ngay trong app.">📝 Phiếu trả lời</span>';
         var modeOpts = Object.keys(MODES).map(function (k) { return '<option value="' + k + '">' + MODES[k].label + '</option>'; }).join('');
         var link = openUrl(t);
         var pct = best ? Math.round(best.ratio * 100) : null;
@@ -493,7 +493,7 @@ window.VNoteToeic = (function () {
         var tests = groupOf[g];
         var ok = tests.filter(function (t) { return t.fileId || packEntry(t.id); }).length;
         return '<section class="toeic-set"><h3 class="toeic-set-title">' + U.escapeHtml(g) +
-          '<span class="toeic-muted toeic-small">' + ok + '/' + tests.length + ' đề sẵn sàng</span></h3>' +
+          '<span class="toeic-muted toeic-small">' + tests.length + ' đề' + (ok ? ' · ' + ok + ' xem được trong app' : '') + '</span></h3>' +
           '<div class="toeic-grid">' + tests.map(card).join('') + '</div></section>';
       }).join('');
 
@@ -537,18 +537,16 @@ window.VNoteToeic = (function () {
         '<button class="btn" id="toeic-pack-btn" title="Đóng gói các đề đã lưu thành thư mục goi-de/ đặt cạnh index.html">📦 Xuất gói đề</button>' +
         '<button class="btn btn-primary" id="toeic-add-btn">＋ Thêm đề</button></div>' +
         '<div class="tx-stats">' +
-        stat(readyCount + '<small>/' + data.tests.length + '</small>', 'Đề sẵn sàng') +
+        stat(data.tests.filter(function (t) { return keyCount(t) >= 100; }).length + '<small>/' + data.tests.length + '</small>', 'Đề có đáp án', readyCount ? readyCount + ' đề xem được trong app' : 'dùng như phiếu trả lời') +
         stat(done.length, 'Bài đã làm', inProgress.length ? inProgress.length + ' đang làm dở' : '') +
         stat(bestFull ? '~' + bestFull : '—', 'Reading cao nhất', bestFull ? 'thang 495, ước tính' : 'làm 1 đề Full để có điểm') +
         stat(avg === null ? '—' : avg + '%', 'Tỉ lệ đúng TB', scored.length ? scored.length + ' bài đã chấm' : '') +
         '</div></header>' +
         resumeHtml +
         (readyCount ? '' :
-          '<div class="toeic-offline tx-callout"><strong>📦 Thiết lập bộ đề offline (làm 1 lần)</strong>' +
-          '<ol><li>Có sẵn file đề trên máy (PDF hoặc .md), giữ nguyên tên file.</li>' +
-          '<li>Bấm <em>📁 Gắn đề từ máy</em>, chọn tất cả — web tự nhận file nào của đề nào.</li>' +
-          '<li>Tuỳ chọn: <em>📦 Xuất gói đề</em> rồi giải nén <code>goi-de.zip</code> cạnh <code>index.html</code> để mang cả bộ đề đi máy khác.</li></ol>' +
-          'Đáp án đã có sẵn trong web.</div>') +
+          '<div class="toeic-offline tx-callout"><strong>👋 Bắt đầu ngay — không cần tải gì</strong>' +
+          '<p style="margin:6px 0 0;">Đáp án 30 đề đã có sẵn trong app. Mở đề trong sách hoặc file của bạn, bấm <em>▶ Bắt đầu</em> ở đề tương ứng rồi tô đáp án — app bấm giờ và chấm điểm. ' +
+          '<span class="toeic-muted">Tuỳ chọn: <em>📁 Gắn đề từ máy</em> để đọc đề ngay trong app.</span></p></div>') +
         '<div class="tx-toolbar">' +
         '<div class="tx-tabs" role="tablist" aria-label="Bộ đề">' + tabs + '</div>' +
         '<label class="tx-search"><span aria-hidden="true">🔍</span><input type="search" id="toeic-search" placeholder="Tìm đề… (vd: 2023 test 5)" autocomplete="off"></label>' +
@@ -639,8 +637,14 @@ window.VNoteToeic = (function () {
       '<button class="toeic-mbtn" data-mnav="1" aria-label="Câu sau">›</button>' +
       '<button class="toeic-mbtn toeic-msheet" data-msheet="1" aria-label="Phiếu trả lời">☰</button>' +
       '</div>';
-    return '<div class="toeic-exam' + (review ? ' is-review' : ' is-exam') + '">' +
-      '<div class="toeic-bar">' + barHtml + '</div>' +
+    var sheetOnly = !hasContent(state.test);
+    var note = sheetOnly
+      ? '<div class="tx-sheetonly">📝 <b>Chế độ phiếu trả lời</b> — đọc đề trong sách hoặc file của bạn, tô đáp án ở đây; ' +
+        (review ? 'đáp án đúng được đánh dấu bên dưới.' : 'nộp bài để chấm điểm.') +
+        ' <a href="javascript:void 0" class="toeic-link" data-toeic-attach="' + state.test.id + '">Gắn đề để xem trong app</a></div>'
+      : '';
+    return '<div class="toeic-exam' + (review ? ' is-review' : ' is-exam') + (sheetOnly ? ' sheet-only' : '') + '">' +
+      '<div class="toeic-bar">' + barHtml + '</div>' + note +
       '<div class="toeic-body">' +
       '<div class="toeic-pdf" id="toeic-pdf"><div class="toeic-pdf-loading toeic-muted">Đang tải đề…</div></div>' +
       '<div class="toeic-sheet" id="toeic-sheet">' + (review ? '' : '<div class="toeic-sheet-head"><strong>Phiếu trả lời</strong><button class="btn btn-sm" data-msheet="1">Đóng</button></div>') + sheetHtml + '</div>' +
@@ -668,6 +672,9 @@ window.VNoteToeic = (function () {
     if (state.viewer) { state.viewer.destroy(); state.viewer = null; }
   }
 
+  /** True when the test text/PDF can be shown inside the app; otherwise the app is used as an answer sheet. */
+  function hasContent(test) { return !!(test && (test.fileId || packEntry(test.id) || drive.forced)); }
+
   function savePage(test, n) {
     test.lastPage = n;
     clearTimeout(state.pageSaveTimer);
@@ -691,6 +698,7 @@ window.VNoteToeic = (function () {
     var test = state.test;
     var box = el('toeic-pdf');
     if (!box) return;
+    if (!hasContent(test)) { unmountViewer(); box.innerHTML = ''; return; }
     unmountViewer();
     var attachBtn = '<button class="btn btn-sm btn-primary" data-toeic-attach="' + test.id + '">📎 Chọn file đề trên máy (PDF / .md)</button>';
     var alive = function () { return box.isConnected && state.test === test; };
@@ -1123,7 +1131,7 @@ window.VNoteToeic = (function () {
         toast('Đang lưu file vào máy…');
         return storeFileFor(t, files[0]).then(function () {
           toast('Đã lưu PDF cho ' + t.name + ' — dùng được khi offline');
-          if (state.test && state.test.id === t.id) { state.test = t; mountPdf(); }
+          if (state.test && state.test.id === t.id) { state.test = t; if (state.screen === 'exam') renderExam(); else if (state.screen === 'result') renderResult(); }
           else if (state.screen === 'list') renderList();
         });
       }).catch(function (err) { toast('Không lưu được file: ' + (err && err.message || err)); });
@@ -1223,7 +1231,7 @@ window.VNoteToeic = (function () {
       if (e.target.closest('#toeic-add-btn')) return openAddModal();
       if (e.target.closest('#toeic-bulk-btn')) return attachBulk();
       if (e.target.closest('#toeic-pack-btn')) return exportPack();
-      if (e.target.closest('[data-toeic-forcedrive]')) { drive.forced = true; return mountPdf(); }
+      if (e.target.closest('[data-toeic-forcedrive]')) { drive.forced = true; return state.screen === 'result' ? renderResult() : renderExam(); }
       if ((t = e.target.closest('[data-toeic-attach]'))) return attachOne(t.dataset.toeicAttach);
       if ((t = e.target.closest('[data-toeic-detach]'))) return detach(t.dataset.toeicDetach);
       if ((t = e.target.closest('[data-mopt]'))) {

@@ -425,3 +425,22 @@
   .toeic-exam.is-exam .toeic-bar .toolbar { margin-left: auto; gap: 6px; flex-wrap: nowrap; }
   .toeic-exam.is-exam .toeic-bar .btn { padding: 4px 9px; font-size: 12.5px; box-shadow: none; }
 }
+
+/* ---- answer-sheet-only mode (no test content in the app) ---- */
+.tx-sheetonly { padding: 8px 14px; font-size: 13px; background: var(--accent-soft); color: var(--text); border-bottom: 1px solid var(--border); }
+.toeic-exam.sheet-only .toeic-pdf { display: none; }
+.toeic-exam.sheet-only .toeic-body { grid-template-columns: 1fr; }
+.toeic-exam.sheet-only .toeic-sheet { width: 100%; max-width: 640px; margin: 0 auto; border-left: 0; }
+.toeic-exam.sheet-only .toeic-q { padding: 6px 16px; }
+.toeic-exam.sheet-only .toeic-opt { width: 38px; height: 38px; font-size: 14px; }
+@media (max-width: 900px) {
+  .toeic-exam.is-exam.sheet-only { bottom: 0; }
+  .toeic-exam.is-exam.sheet-only .toeic-sheet {
+    position: static; transform: none; max-height: none; flex: 1; min-height: 0; overflow-y: auto;
+    border-radius: 0; box-shadow: none; padding-bottom: env(safe-area-inset-bottom); border-top: 0;
+  }
+  .toeic-exam.is-exam.sheet-only .toeic-sheet-head, .toeic-exam.sheet-only .toeic-mbar { display: none; }
+  .toeic-exam.is-exam.sheet-only .toeic-part-title { top: 0; }
+  .toeic-exam.sheet-only .toeic-opt { width: 44px; height: 44px; font-size: 15px; }
+  .toeic-exam.sheet-only .toeic-q { gap: 10px; }
+}
