@@ -55,25 +55,29 @@ TÍNH NĂNG
 -------------------------------------------------------
 2) IPHONE / IPAD
 -------------------------------------------------------
-  iPhone không mở được web từ file index.html trong ứng dụng Tệp, nên cần đặt web lên
-  một địa chỉ https một lần, sau đó "Thêm vào MH chính" để dùng như app, kể cả offline.
+  iPhone không chạy được web từ file index.html trong ứng dụng Tệp. Cách làm:
+  đưa phần CODE lên GitHub Pages (miễn phí, không chứa đề), rồi nạp đề từ máy bạn.
 
-  Cách đưa web lên (chọn 1):
-   a) GitHub Pages: repo uytl4/vNote → Settings → Pages → Source "Deploy from a branch"
-      → chọn nhánh có thư mục toeic-web → Save. Địa chỉ sẽ là
-      https://uytl4.github.io/vNote/toeic-web/  (bản này KHÔNG có gói đề; trên iPhone
-      dùng "📁 Gắn PDF từ máy" với file PDF trong ứng dụng Tệp).
-   b) Netlify Drop (https://app.netlify.com/drop): kéo thả thư mục toeic-reading vào.
-   Không đưa thư mục goi-de/ lên địa chỉ công khai (đề ETS có bản quyền).
+  A. Bật GitHub Pages (làm 1 lần, trên máy tính):
+     github.com/uytl4/vNote → Settings → Pages → Source: "Deploy from a branch"
+     → Branch: claude/youthful-clarke-3zbkva, thư mục "/ (root)" → Save.
+     Đợi 1–2 phút, địa chỉ app:  https://uytl4.github.io/vNote/toeic-web/
+     (Bản trên mạng KHÔNG có thư mục goi-de/ — nội dung đề không bị công khai.)
 
-  Trên iPhone:
-   1. Mở địa chỉ bằng Safari (khi có mạng) → nút Chia sẻ → "Thêm vào MH chính".
-      Mở app 1 lần khi có mạng để nó tự lưu bộ nhớ đệm → sau đó mở được khi offline.
-   2. Lưu PDF đề vào iPhone (ứng dụng Tệp / iCloud Drive), giữ nguyên tên file.
-   3. Trong web bấm "📁 Gắn PDF từ máy" → chọn các file PDF trong Tệp.
-      Đề sẽ hiển thị bằng trình đọc PDF có sẵn trong web (không cần mạng).
-  Mẹo: iPhone giới hạn dung lượng lưu của web; nên gắn từng bộ đề cần làm
-  (mỗi đề 6–20 MB), không cần gắn cuốn sách 200 MB.
+  B. Chép 30 file đề .md vào iPhone (iCloud Drive / AirDrop / cáp) → ứng dụng Tệp.
+
+  C. Trên iPhone (khi có mạng):
+     1. Mở Safari → vào địa chỉ ở bước A.
+     2. Nút Chia sẻ (ô vuông mũi tên lên) → "Thêm vào MH chính" → Thêm.
+     3. Mở app "TOEIC RC" vừa có trên màn hình chính (KHÔNG làm tiếp trong Safari —
+        dữ liệu của app và của Safari tách riêng).
+     4. Bấm "📁 Gắn đề từ máy" → Duyệt → chọn thư mục chứa file .md → Chọn → chọn
+        hết 30 file → Mở. Web tự nhận đề nào của file nào và lưu trong máy.
+     Xong: từ giờ mở app khi không có mạng vẫn làm bài được (đề + đáp án đều offline).
+     Có thể gắn file PDF thay cho .md theo cùng cách.
+
+  Lưu ý: xoá app khỏi màn hình chính sẽ xoá luôn đề đã gắn và lịch sử làm bài —
+  nhớ "⬇ Sao lưu" trước (bản sao lưu gồm đáp án + lịch sử, không gồm file đề).
 
 -------------------------------------------------------
 DỮ LIỆU

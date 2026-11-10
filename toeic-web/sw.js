@@ -1,5 +1,5 @@
 /* Offline cache for the TOEIC Reading site. Bump VERSION whenever files change. */
-var VERSION = 'toeic-rc-v5';
+var VERSION = 'toeic-rc-v7';
 var FILES = [
   './', 'index.html', 'manifest.webmanifest',
   'css/base.css', 'css/toeic.css',
@@ -28,6 +28,12 @@ self.addEventListener('fetch', function (e) {
     caches.open(VERSION).then(function (c) { c.put(req, copy); });
     return res;
   }).catch(function () {
-    return caches.match(req, { ignoreSearch: true }).then(function (hit) { return hit || caches.match('index.html'); });
+    return caches.match(req, { ignoreSearch: true }).then(function (hit) {
+      if (hit) return hit;
+      // Only page navigations fall back to the app shell; a missing script (e.g. the optional
+      // goi-de/index.js) must stay a plain 404 so the page can ignore it.
+      if (req.mode === 'navigate') return caches.match('index.html');
+      return new Response('', { status: 404, statusText: 'Offline' });
+    });
   }));
 });
